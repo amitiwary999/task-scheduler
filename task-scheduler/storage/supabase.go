@@ -2,8 +2,10 @@ package storage
 
 import (
 	"log"
+	task "tskscheduler/task-scheduler/model"
 
-	sb "github.com/supabase-community/supabase-go"
+	"github.com/google/uuid"
+	sb "github.com/nedpals/supabase-go"
 )
 
 type SupabaseClient struct {
@@ -11,12 +13,23 @@ type SupabaseClient struct {
 }
 
 func NewSupabaseClient(url, key string) (*SupabaseClient, error) {
-	client, err := sb.NewClient(url, key, nil)
-	if err != nil {
-		log.Printf("supabase client error %v\n", err)
-		return nil, err
-	}
+	client := sb.CreateClient(url, key)
 	return &SupabaseClient{
 		client: client,
 	}, nil
+}
+
+func (s *SupabaseClient) SaveTask(meta task.TaskMeta) (string, error) {
+	id := uuid.New().String()
+	row := task.Task{
+		Id:   id,
+		Meta: meta,
+	}
+	var result []task.Task
+	err := s.client.DB.From("").Insert(row).Execute(&result)
+	if err != nil {
+		log.Printf("error in insert %v\n", err)
+		return "", err
+	}
+	return id, nil
 }
