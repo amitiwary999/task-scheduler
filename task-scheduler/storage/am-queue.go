@@ -1,4 +1,4 @@
-package amqueue
+package storage
 
 import (
 	"fmt"
