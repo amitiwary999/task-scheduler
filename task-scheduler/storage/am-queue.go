@@ -15,7 +15,7 @@ type Consumer struct {
 	channel  *amqp.Channel
 	delivery <-chan amqp.Delivery
 	tag      string
-	done     chan error
+	done     chan int
 }
 
 func (consumer *Consumer) SetupCloseHandler() {
@@ -31,12 +31,12 @@ func (consumer *Consumer) SetupCloseHandler() {
 	}()
 }
 
-func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string) (*Consumer, error) {
+func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, done chan int) (*Consumer, error) {
 	c := &Consumer{
 		conn:    nil,
 		channel: nil,
 		tag:     ctag,
-		done:    make(chan error),
+		done:    done,
 	}
 
 	var err error
@@ -130,15 +130,19 @@ func (c *Consumer) Shutdown() error {
 
 	defer log.Printf("AMQP shutdown OK")
 
-	// wait for handle() to exit
-	return <-c.done
+	c.done <- 1
+	return nil
 }
 
-func handle(deliveries <-chan amqp.Delivery, done chan error) {
-	cleanup := func() {
-		log.Printf("handle: deliveries channel closed")
-		done <- nil
+func handle(deliveries <-chan amqp.Delivery, done chan int) {
+	select {
+	case <-done:
+		return
+	case <-deliveries:
+		for d := range deliveries {
+			body := string(d.Body)
+			d.Ack(true)
+			log.Printf("consume body %v\n", body)
+		}
 	}
-
-	defer cleanup()
 }
