@@ -13,9 +13,9 @@ import (
 type Consumer struct {
 	conn     *amqp.Connection
 	channel  *amqp.Channel
-	delivery <-chan amqp.Delivery
+	Delivery <-chan amqp.Delivery
 	tag      string
-	done     chan int
+	Done     chan int
 }
 
 func (consumer *Consumer) SetupCloseHandler() {
@@ -36,7 +36,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 		conn:    nil,
 		channel: nil,
 		tag:     ctag,
-		done:    done,
+		Done:    done,
 	}
 
 	var err error
@@ -112,8 +112,8 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 		return nil, fmt.Errorf("Queue Consume: %s", err)
 	}
 
-	c.delivery = deliveries
-	go handle(deliveries, c.done)
+	c.Delivery = deliveries
+	//go handle(deliveries, c.done)
 
 	return c, nil
 }
@@ -130,17 +130,18 @@ func (c *Consumer) Shutdown() error {
 
 	defer log.Printf("AMQP shutdown OK")
 
-	c.done <- 1
+	c.Done <- 1
 	return nil
 }
 
-func handle(deliveries <-chan amqp.Delivery, done chan int) {
+func (c *Consumer) Handle(deliveries <-chan amqp.Delivery, done chan int, data chan string) {
 	select {
 	case <-done:
 		return
 	case <-deliveries:
 		for d := range deliveries {
 			body := string(d.Body)
+			data <- body
 			d.Ack(true)
 			log.Printf("consume body %v\n", body)
 		}
