@@ -19,17 +19,19 @@ func NewSupabaseClient(url, key string) (*SupabaseClient, error) {
 	}, nil
 }
 
-func (s *SupabaseClient) SaveTask(meta task.TaskMeta) (string, error) {
+func (s *SupabaseClient) SaveTask(meta *task.TaskMeta) (string, error) {
 	id := uuid.New().String()
 	row := task.Task{
 		Id:   id,
-		Meta: meta,
+		Meta: *meta,
 	}
 	var result []task.Task
-	err := s.client.DB.From("").Insert(row).Execute(&result)
+	err := s.client.DB.From("JobDetail").Insert(row).Execute(&result)
 	if err != nil {
 		log.Printf("error in insert %v\n", err)
 		return "", err
+	} else {
+		log.Printf("added data succ %v\n", result)
 	}
 	return id, nil
 }
