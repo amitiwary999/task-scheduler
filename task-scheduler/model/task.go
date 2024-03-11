@@ -10,3 +10,13 @@ type Task struct {
 	Id   string   `json:"id"`
 	Meta TaskMeta `json:"meta"`
 }
+
+type Servers struct {
+	Id   string `json:"id"`
+	Load int    `json:"load"`
+}
+
+type TaskWeight struct {
+	Id     string `json:"id"`
+	Weight int    `json:"weight"`
+}

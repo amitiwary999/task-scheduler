@@ -134,12 +134,12 @@ func (c *Consumer) Shutdown() error {
 	return nil
 }
 
-func (c *Consumer) Handle(deliveries <-chan amqp.Delivery, done chan int, data chan string) {
+func (c *Consumer) Handle(data chan string) {
 	select {
-	case <-done:
+	case <-c.Done:
 		return
-	case <-deliveries:
-		for d := range deliveries {
+	case <-c.Delivery:
+		for d := range c.Delivery {
 			body := string(d.Body)
 			data <- body
 			d.Ack(true)
