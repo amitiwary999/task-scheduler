@@ -17,6 +17,6 @@ type Servers struct {
 }
 
 type TaskWeight struct {
-	Id     string `json:"id"`
+	Type   string `json:"type"`
 	Weight int    `json:"weight"`
 }

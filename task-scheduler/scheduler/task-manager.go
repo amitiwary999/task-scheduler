@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"encoding/json"
 	"log"
 	cnfg "tskscheduler/task-scheduler/config"
 	model "tskscheduler/task-scheduler/model"
@@ -8,33 +9,33 @@ import (
 )
 
 type TaskManager struct {
-	taskWeight map[string]model.TaskWeight
-	servers    map[string]model.Servers
-	consumer   *qm.Consumer
-	supClient  *qm.SupabaseClient
-	receive    chan string
-	done       chan int
+	tasksWeight map[string]model.TaskWeight
+	servers     []model.Servers
+	consumer    *qm.Consumer
+	supClient   *qm.SupabaseClient
+	receive     chan string
+	done        chan int
 }
 
 func InitManager(consumer *qm.Consumer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
-	servers := make(map[string]model.Servers)
+	servers := make([]model.Servers, 0, len(config.Servers))
 	tasksWeight := make(map[string]model.TaskWeight)
 
-	for _, server := range config.Servers {
-		servers[server.Id] = server
+	for i, server := range config.Servers {
+		servers[i] = server
 	}
 
 	for _, taskWeight := range config.TaskWeight {
-		tasksWeight[taskWeight.Id] = taskWeight
+		tasksWeight[taskWeight.Type] = taskWeight
 	}
 
 	return &TaskManager{
-		taskWeight: tasksWeight,
-		servers:    servers,
-		consumer:   consumer,
-		supClient:  supClient,
-		receive:    make(chan string),
-		done:       done,
+		tasksWeight: tasksWeight,
+		servers:     servers,
+		consumer:    consumer,
+		supClient:   supClient,
+		receive:     make(chan string),
+		done:        done,
 	}
 }
 
@@ -49,7 +50,29 @@ func (tm *TaskManager) receiveTask(recChan chan string, done chan int) {
 		return
 	case <-recChan:
 		for taskData := range recChan {
+			var taskMeta model.TaskMeta
+			json.Unmarshal([]byte(taskData), &taskMeta)
+			tm.assignTask(&taskMeta)
 			log.Printf("task data %v\n", taskData)
 		}
 	}
+}
+
+func (tm *TaskManager) assignTask(taskMeta *model.TaskMeta) {
+	id, err := tm.supClient.SaveTask(taskMeta)
+	if err != nil {
+		log.Printf("error saving task %v\n", err)
+	}
+	taskWeight, ok := tm.tasksWeight[taskMeta.TaskType]
+	minId := tm.servers[0].Id
+	minLoadVal := tm.servers[0].Load
+	if ok {
+		for _, server := range tm.servers {
+			if taskWeight.Weight+server.Load < minLoadVal {
+				minId = server.Id
+				minLoadVal = server.Load + taskWeight.Weight
+			}
+		}
+	}
+	log.Printf("taskid %v serverid %v\n", id, minId)
 }
