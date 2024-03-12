@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -12,10 +13,10 @@ import (
 
 type Consumer struct {
 	conn     *amqp.Connection
-	Channel  *amqp.Channel
-	Delivery <-chan amqp.Delivery
+	channel  *amqp.Channel
+	delivery <-chan amqp.Delivery
 	tag      string
-	Done     chan int
+	done     chan int
 }
 
 func (consumer *Consumer) SetupCloseHandler() {
@@ -34,9 +35,9 @@ func (consumer *Consumer) SetupCloseHandler() {
 func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, done chan int) (*Consumer, error) {
 	c := &Consumer{
 		conn:    nil,
-		Channel: nil,
+		channel: nil,
 		tag:     ctag,
-		Done:    done,
+		done:    done,
 	}
 
 	var err error
@@ -54,13 +55,13 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	}()
 
 	log.Printf("got Connection, getting Channel")
-	c.Channel, err = c.conn.Channel()
+	c.channel, err = c.conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("Channel: %s", err)
 	}
 
 	log.Printf("got Channel, declaring Exchange (%q)", exchange)
-	if err = c.Channel.ExchangeDeclare(
+	if err = c.channel.ExchangeDeclare(
 		exchange,     // name of the exchange
 		exchangeType, // type
 		true,         // durable
@@ -73,7 +74,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	}
 
 	log.Printf("declared Exchange, declaring Queue %q", queueName)
-	queue, err := c.Channel.QueueDeclare(
+	queue, err := c.channel.QueueDeclare(
 		queueName, // name of the queue
 		true,      // durable
 		false,     // delete when unused
@@ -88,7 +89,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
 		queue.Name, queue.Messages, queue.Consumers, key)
 
-	if err = c.Channel.QueueBind(
+	if err = c.channel.QueueBind(
 		queue.Name, // name of the queue
 		key,        // bindingKey
 		exchange,   // sourceExchange
@@ -99,7 +100,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	}
 
 	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
-	deliveries, err := c.Channel.Consume(
+	deliveries, err := c.channel.Consume(
 		queue.Name, // name
 		c.tag,      // consumerTag,
 		false,      // autoAck
@@ -112,7 +113,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 		return nil, fmt.Errorf("Queue Consume: %s", err)
 	}
 
-	c.Delivery = deliveries
+	c.delivery = deliveries
 	//go handle(deliveries, c.done)
 
 	return c, nil
@@ -120,7 +121,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 
 func (c *Consumer) Shutdown() error {
 	// will close() the deliveries channel
-	if err := c.Channel.Cancel(c.tag, true); err != nil {
+	if err := c.channel.Cancel(c.tag, true); err != nil {
 		return fmt.Errorf("Consumer cancel failed: %s", err)
 	}
 
@@ -130,20 +131,38 @@ func (c *Consumer) Shutdown() error {
 
 	defer log.Printf("AMQP shutdown OK")
 
-	c.Done <- 1
+	c.done <- 1
 	return nil
 }
 
-func (c *Consumer) Handle(data chan string) {
+func (c *Consumer) Handle(data chan []byte) {
 	select {
-	case <-c.Done:
+	case <-c.done:
 		return
-	case <-c.Delivery:
-		for d := range c.Delivery {
-			body := string(d.Body)
-			data <- body
+	case <-c.delivery:
+		for d := range c.delivery {
+			data <- d.Body
 			d.Ack(true)
-			log.Printf("consume body %v\n", body)
+			log.Printf("consume body %v\n", d.Body)
 		}
 	}
+}
+
+func (c *Consumer) SendTaskMessage(taskId, serverId string) {
+	body := fmt.Sprintf(`{"server":%v, "task":%v}`, serverId, taskId)
+	var queueName string
+	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	if serverId == "server1" {
+		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_1")
+	} else if serverId == "server2" {
+		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_2")
+	} else if serverId == "server3" {
+		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_3")
+	} else {
+		return
+	}
+	c.channel.PublishWithContext(context.Background(), exchange, queueName, false, false, amqp.Publishing{
+		ContentType: "text/plain",
+		Body:        []byte(body),
+	})
 }
