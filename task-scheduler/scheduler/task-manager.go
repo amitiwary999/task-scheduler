@@ -1,11 +1,16 @@
 package scheduler
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"os"
 	cnfg "tskscheduler/task-scheduler/config"
 	model "tskscheduler/task-scheduler/model"
 	qm "tskscheduler/task-scheduler/storage"
+
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type TaskManager struct {
@@ -74,5 +79,25 @@ func (tm *TaskManager) assignTask(taskMeta *model.TaskMeta) {
 			}
 		}
 	}
+	tm.sendTaskMessage(minId, id)
 	log.Printf("taskid %v serverid %v\n", id, minId)
+}
+
+func (tm *TaskManager) sendTaskMessage(taskId, serverId string) {
+	body := fmt.Sprintf(`{"server":%v, "task":%v}`, serverId, taskId)
+	var queueName string
+	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	if serverId == "server1" {
+		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_1")
+	} else if serverId == "server2" {
+		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_2")
+	} else if serverId == "server3" {
+		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_3")
+	} else {
+		return
+	}
+	tm.consumer.Channel.PublishWithContext(context.Background(), exchange, queueName, false, false, amqp091.Publishing{
+		ContentType: "text/plain",
+		Body:        []byte(body),
+	})
 }

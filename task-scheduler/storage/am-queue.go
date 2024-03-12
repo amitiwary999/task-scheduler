@@ -12,7 +12,7 @@ import (
 
 type Consumer struct {
 	conn     *amqp.Connection
-	channel  *amqp.Channel
+	Channel  *amqp.Channel
 	Delivery <-chan amqp.Delivery
 	tag      string
 	Done     chan int
@@ -34,7 +34,7 @@ func (consumer *Consumer) SetupCloseHandler() {
 func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, done chan int) (*Consumer, error) {
 	c := &Consumer{
 		conn:    nil,
-		channel: nil,
+		Channel: nil,
 		tag:     ctag,
 		Done:    done,
 	}
@@ -54,13 +54,13 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	}()
 
 	log.Printf("got Connection, getting Channel")
-	c.channel, err = c.conn.Channel()
+	c.Channel, err = c.conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("Channel: %s", err)
 	}
 
 	log.Printf("got Channel, declaring Exchange (%q)", exchange)
-	if err = c.channel.ExchangeDeclare(
+	if err = c.Channel.ExchangeDeclare(
 		exchange,     // name of the exchange
 		exchangeType, // type
 		true,         // durable
@@ -73,7 +73,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	}
 
 	log.Printf("declared Exchange, declaring Queue %q", queueName)
-	queue, err := c.channel.QueueDeclare(
+	queue, err := c.Channel.QueueDeclare(
 		queueName, // name of the queue
 		true,      // durable
 		false,     // delete when unused
@@ -88,7 +88,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
 		queue.Name, queue.Messages, queue.Consumers, key)
 
-	if err = c.channel.QueueBind(
+	if err = c.Channel.QueueBind(
 		queue.Name, // name of the queue
 		key,        // bindingKey
 		exchange,   // sourceExchange
@@ -99,7 +99,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 	}
 
 	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
-	deliveries, err := c.channel.Consume(
+	deliveries, err := c.Channel.Consume(
 		queue.Name, // name
 		c.tag,      // consumerTag,
 		false,      // autoAck
@@ -120,7 +120,7 @@ func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, d
 
 func (c *Consumer) Shutdown() error {
 	// will close() the deliveries channel
-	if err := c.channel.Cancel(c.tag, true); err != nil {
+	if err := c.Channel.Cancel(c.tag, true); err != nil {
 		return fmt.Errorf("Consumer cancel failed: %s", err)
 	}
 
