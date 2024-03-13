@@ -142,8 +142,8 @@ func (c *Consumer) Handle(data chan []byte) {
 	case <-c.delivery:
 		for d := range c.delivery {
 			data <- d.Body
-			d.Ack(true)
 			log.Printf("consume body %v\n", d.Body)
+			d.Ack(true)
 		}
 	}
 }

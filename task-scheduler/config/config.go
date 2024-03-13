@@ -12,7 +12,7 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	configData, _ := os.ReadFile("../../config.json")
+	configData, _ := os.ReadFile("./config.json")
 	configS := string(configData)
 	var config Config
 	json.Unmarshal([]byte(configS), &config)

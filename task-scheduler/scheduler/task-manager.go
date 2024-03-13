@@ -10,7 +10,7 @@ import (
 
 type TaskManager struct {
 	tasksWeight map[string]model.TaskWeight
-	servers     []model.Servers
+	servers     map[string]model.Servers
 	consumer    *qm.Consumer
 	supClient   *qm.SupabaseClient
 	receive     chan []byte
@@ -18,17 +18,15 @@ type TaskManager struct {
 }
 
 func InitManager(consumer *qm.Consumer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
-	servers := make([]model.Servers, 0, len(config.Servers))
+	servers := make(map[string]model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
-
-	for i, server := range config.Servers {
-		servers[i] = server
+	for _, server := range config.Servers {
+		servers[server.Id] = server
 	}
 
 	for _, taskWeight := range config.TaskWeight {
 		tasksWeight[taskWeight.Type] = taskWeight
 	}
-
 	return &TaskManager{
 		tasksWeight: tasksWeight,
 		servers:     servers,
@@ -40,21 +38,22 @@ func InitManager(consumer *qm.Consumer, supClient *qm.SupabaseClient, done chan 
 }
 
 func (tm *TaskManager) StartManager() {
-	tm.receiveTask(tm.receive, tm.done)
 	go tm.consumer.Handle(tm.receive)
+	tm.receiveTask()
 }
 
-func (tm *TaskManager) receiveTask(recChan chan []byte, done chan int) {
+func (tm *TaskManager) receiveTask() {
 	select {
-	case <-done:
+	case <-tm.done:
 		return
-	case <-recChan:
-		for taskData := range recChan {
-			var taskMeta model.TaskMeta
-			json.Unmarshal(taskData, &taskMeta)
+	case taskData := <-tm.receive:
+		var taskMeta model.TaskMeta
+		json.Unmarshal(taskData, &taskMeta)
+		log.Printf("task data %v\n", taskMeta.Action)
+		if taskMeta.Action == "ADD_TASK" {
 			tm.assignTask(&taskMeta)
-			log.Printf("task data %v\n", taskData)
 		}
+
 	}
 }
 
@@ -64,16 +63,21 @@ func (tm *TaskManager) assignTask(taskMeta *model.TaskMeta) {
 		log.Printf("error saving task %v\n", err)
 	}
 	taskWeight, ok := tm.tasksWeight[taskMeta.TaskType]
-	minId := tm.servers[0].Id
-	minLoadVal := tm.servers[0].Load
+	var minServer model.Servers
+	minLoadVal := 10000000
 	if ok {
 		for _, server := range tm.servers {
 			if taskWeight.Weight+server.Load < minLoadVal {
-				minId = server.Id
+				minServer = server
 				minLoadVal = server.Load + taskWeight.Weight
 			}
 		}
 	}
-	tm.consumer.SendTaskMessage(minId, id)
-	log.Printf("taskid %v serverid %v\n", id, minId)
+	minServer.Load = minLoadVal
+	tm.consumer.SendTaskMessage(minServer.Id, id)
+	log.Printf("taskid %v serverid %v\n", id, minServer.Id)
+}
+
+func (tm *TaskManager) completeTask(serverId, taskId string) {
+
 }

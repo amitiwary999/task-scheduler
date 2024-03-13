@@ -36,7 +36,8 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	manag.InitManager(consumer, supa, done, cnfg.LoadConfig())
+	taskM := manag.InitManager(consumer, supa, done, cnfg.LoadConfig())
+	taskM.StartManager()
 	<-done
 
 }
