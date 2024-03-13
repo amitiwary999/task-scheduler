@@ -12,12 +12,13 @@ type TaskManager struct {
 	tasksWeight map[string]model.TaskWeight
 	servers     map[string]model.Servers
 	consumer    *qm.Consumer
+	producer    *qm.Producer
 	supClient   *qm.SupabaseClient
 	receive     chan []byte
 	done        chan int
 }
 
-func InitManager(consumer *qm.Consumer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
+func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
 	servers := make(map[string]model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
 	for _, server := range config.Servers {
@@ -30,6 +31,7 @@ func InitManager(consumer *qm.Consumer, supClient *qm.SupabaseClient, done chan 
 	return &TaskManager{
 		tasksWeight: tasksWeight,
 		servers:     servers,
+		producer:    producer,
 		consumer:    consumer,
 		supClient:   supClient,
 		receive:     make(chan []byte),
@@ -49,7 +51,6 @@ func (tm *TaskManager) receiveTask() {
 	case taskData := <-tm.receive:
 		var taskMeta model.TaskMeta
 		json.Unmarshal(taskData, &taskMeta)
-		log.Printf("task data %v\n", taskMeta.Action)
 		if taskMeta.Action == "ADD_TASK" {
 			tm.assignTask(&taskMeta)
 		}
@@ -74,8 +75,7 @@ func (tm *TaskManager) assignTask(taskMeta *model.TaskMeta) {
 		}
 	}
 	minServer.Load = minLoadVal
-	tm.consumer.SendTaskMessage(minServer.Id, id)
-	log.Printf("taskid %v serverid %v\n", id, minServer.Id)
+	tm.producer.SendTaskMessage(id, minServer.Id)
 }
 
 func (tm *TaskManager) completeTask(serverId, taskId string) {

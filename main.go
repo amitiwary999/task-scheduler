@@ -15,28 +15,27 @@ func main() {
 	if err != nil {
 		fmt.Printf("error load env %v\n", err)
 	}
-	rabbitmqUri := os.Getenv("RABBITMQ_URL")
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
-	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
-	queue := os.Getenv("RABBITMQ_QUEUE")
-	exchangeKey := os.Getenv("RABBITMQ_EXCHANGE_KEY")
-	consumerTag := os.Getenv("RABBITMQ_CONSUMER_TAG")
 	supabaseKey := os.Getenv("SUPABASE_KEY")
 	supabaseUrl := os.Getenv("SUPABASE_URL")
 
 	done := make(chan int)
-	consumer, err := storage.NewConsumer(rabbitmqUri, exchange, exchangeType, queue, exchangeKey, consumerTag, done)
+	consumer, err := storage.NewConsumer(done)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
 	} else {
 		consumer.SetupCloseHandler()
 	}
-
+	producer, err := storage.NewProducer(done)
+	if err != nil {
+		fmt.Printf("amq connection error %v\n", err)
+	} else {
+		producer.SetupCloseHandler()
+	}
 	supa, error := storage.NewSupabaseClient(supabaseUrl, supabaseKey)
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	taskM := manag.InitManager(consumer, supa, done, cnfg.LoadConfig())
+	taskM := manag.InitManager(consumer, producer, supa, done, cnfg.LoadConfig())
 	taskM.StartManager()
 	<-done
 

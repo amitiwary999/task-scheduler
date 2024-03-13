@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -32,7 +31,14 @@ func (consumer *Consumer) SetupCloseHandler() {
 	}()
 }
 
-func NewConsumer(amqpURI, exchange, exchangeType, queueName, key, ctag string, done chan int) (*Consumer, error) {
+func NewConsumer(done chan int) (*Consumer, error) {
+	amqpURI := os.Getenv("RABBITMQ_URL")
+	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
+	queueName := os.Getenv("RABBITMQ_QUEUE")
+	key := os.Getenv("RABBITMQ_EXCHANGE_KEY")
+	ctag := os.Getenv("RABBITMQ_CONSUMER_TAG")
+
 	c := &Consumer{
 		conn:    nil,
 		channel: nil,
@@ -146,23 +152,4 @@ func (c *Consumer) Handle(data chan []byte) {
 			d.Ack(true)
 		}
 	}
-}
-
-func (c *Consumer) SendTaskMessage(taskId, serverId string) {
-	body := fmt.Sprintf(`{"server":%v, "task":%v}`, serverId, taskId)
-	var queueName string
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
-	if serverId == "server1" {
-		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_1")
-	} else if serverId == "server2" {
-		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_2")
-	} else if serverId == "server3" {
-		queueName = os.Getenv("RABBITMQ_QUEUE_JOB_SERVER_3")
-	} else {
-		return
-	}
-	c.channel.PublishWithContext(context.Background(), exchange, queueName, false, false, amqp.Publishing{
-		ContentType: "text/plain",
-		Body:        []byte(body),
-	})
 }
