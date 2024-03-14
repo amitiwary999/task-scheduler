@@ -62,6 +62,7 @@ func (tm *TaskManager) assignTask(taskMeta *model.TaskMeta) {
 	id, err := tm.supClient.SaveTask(taskMeta)
 	if err != nil {
 		log.Printf("error saving task %v\n", err)
+		return
 	}
 	taskWeight, ok := tm.tasksWeight[taskMeta.TaskType]
 	var minServer model.Servers

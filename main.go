@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	cnfg "tskscheduler/task-scheduler/config"
 	manag "tskscheduler/task-scheduler/scheduler"
 	storage "tskscheduler/task-scheduler/storage"
@@ -15,8 +14,6 @@ func main() {
 	if err != nil {
 		fmt.Printf("error load env %v\n", err)
 	}
-	supabaseKey := os.Getenv("SUPABASE_KEY")
-	supabaseUrl := os.Getenv("SUPABASE_URL")
 
 	done := make(chan int)
 	consumer, err := storage.NewConsumer(done)
@@ -31,7 +28,7 @@ func main() {
 	} else {
 		producer.SetupCloseHandler()
 	}
-	supa, error := storage.NewSupabaseClient(supabaseUrl, supabaseKey)
+	supa, error := storage.NewSupabaseClient()
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
