@@ -28,11 +28,10 @@ func (producer *Producer) SetupCloseHandler() {
 	}()
 }
 
-func NewProducer(done chan int) (*Producer, error) {
+func NewProducer(done chan int, queueName string) (*Producer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
 	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
-	queueName := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
 
 	c := &Producer{
 		conn:    nil,

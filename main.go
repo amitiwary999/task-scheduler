@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	storage "tskscheduler/storage"
 	cnfg "tskscheduler/task-scheduler/config"
 	manag "tskscheduler/task-scheduler/scheduler"
-	storage "tskscheduler/task-scheduler/storage"
 
 	"github.com/joho/godotenv"
 )
@@ -16,13 +17,15 @@ func main() {
 	}
 
 	done := make(chan int)
-	consumer, err := storage.NewConsumer(done)
+	queueName := os.Getenv("RABBITMQ_QUEUE")
+	producerQueueName := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
+	consumer, err := storage.NewConsumer(done, queueName)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
 	} else {
 		consumer.SetupCloseHandler()
 	}
-	producer, err := storage.NewProducer(done)
+	producer, err := storage.NewProducer(done, producerQueueName)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
 	} else {
