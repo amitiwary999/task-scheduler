@@ -31,11 +31,10 @@ func (consumer *Consumer) SetupCloseHandler() {
 	}()
 }
 
-func NewConsumer(done chan int, queueName string) (*Consumer, error) {
+func NewConsumer(done chan int, queueName string, key string) (*Consumer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
 	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
-	key := os.Getenv("RABBITMQ_EXCHANGE_KEY")
 	ctag := os.Getenv("RABBITMQ_CONSUMER_TAG")
 
 	c := &Consumer{

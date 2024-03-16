@@ -2,11 +2,14 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	model "tskscheduler/task-scheduler/model"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -88,17 +91,23 @@ func NewProducer(done chan int, queueName string) (*Producer, error) {
 	return c, nil
 }
 
-func (c *Producer) SendTaskMessage(taskId, serverId string) {
-	fmt.Printf("send the task %v %v \n", serverId, taskId)
-	body := fmt.Sprintf(`{"server":%v, "task":%v}`, serverId, taskId)
+func (c *Producer) SendTaskMessage(taskId, routingKey string) {
+	fmt.Printf("send the task %v %v \n", routingKey, taskId)
+	bodyModel := &model.TaskMessage{
+		TaskId:   taskId,
+		ServerId: routingKey,
+	}
+	body, err := json.Marshal(bodyModel)
+	if err != nil {
+		fmt.Printf("task maessage body parse error %v\n", err)
+	}
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
-
-	err := c.channel.PublishWithContext(context.Background(), exchange, serverId, false, false, amqp.Publishing{
+	publishErr := c.channel.PublishWithContext(context.Background(), exchange, routingKey, false, false, amqp.Publishing{
 		ContentType: "text/plain",
-		Body:        []byte(body),
+		Body:        body,
 	})
 
-	if err != nil {
+	if publishErr != nil {
 		fmt.Printf("error sendig task to server %v\n", err)
 	}
 }

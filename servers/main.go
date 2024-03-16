@@ -2,25 +2,32 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+	task "tskscheduler/servers/tasks"
 	storage "tskscheduler/storage"
-	cnfg "tskscheduler/task-scheduler/config"
-	manag "tskscheduler/task-scheduler/scheduler"
 
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load(".env")
+	argv := os.Args[1:]
+	if len(argv) == 0 {
+		log.Printf("please provide the queue name")
+		return
+	}
+	err := godotenv.Load("/Users/amitt/Documents/Personal Data/personalproj/TaskScheduler/.env")
 	if err != nil {
 		fmt.Printf("error load env %v\n", err)
+		return
 	}
 
 	done := make(chan int)
-	key := os.Getenv("RABBITMQ_EXCHANGE_KEY")
-	queueName := os.Getenv("RABBITMQ_QUEUE")
-	producerQueueName := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
-	consumer, err := storage.NewConsumer(done, queueName, key)
+	// producerKey := os.Getenv("RABBITMQ_EXCHANGE_KEY")
+	consumerKey := argv[0]
+	queueName := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
+	producerQueueName := os.Getenv("RABBITMQ_QUEUE")
+	consumer, err := storage.NewConsumer(done, queueName, consumerKey)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
 	} else {
@@ -36,8 +43,6 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	taskM := manag.InitManager(consumer, producer, supa, done, cnfg.LoadConfig())
-	taskM.StartManager()
-	<-done
-
+	cordinator := task.NewCordinator(consumer, producer, supa, done)
+	cordinator.Start()
 }

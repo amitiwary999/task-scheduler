@@ -21,3 +21,8 @@ type TaskWeight struct {
 	Type   string `json:"type"`
 	Weight int    `json:"weight"`
 }
+
+type TaskMessage struct {
+	ServerId string `json:"server"`
+	TaskId   string `json:"task"`
+}
