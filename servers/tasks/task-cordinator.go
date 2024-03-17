@@ -14,15 +14,17 @@ type cordinator struct {
 	producer  *qm.Producer
 	supClient *qm.SupabaseClient
 	receive   chan []byte
+	serverId  string
 }
 
-func NewCordinator(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int) *cordinator {
+func NewCordinator(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, serverId string) *cordinator {
 	return &cordinator{
 		done:      make(chan int),
 		consumer:  consumer,
 		producer:  producer,
 		supClient: supClient,
 		receive:   make(chan []byte),
+		serverId:  serverId,
 	}
 }
 
@@ -36,7 +38,7 @@ func (c *cordinator) receiveScheduledTask() {
 	case <-c.done:
 		return
 	case task := <-c.receive:
-		fmt.Printf("task in cordinator %v\n", task)
+		fmt.Printf("task in cordinator %v for server %v\n", task, c.serverId)
 		var receiveTask model.ReceiveTask
 		err := json.Unmarshal(task, &receiveTask)
 		if err != nil {
@@ -68,4 +70,6 @@ func (c *cordinator) doTask(taskData model.Task) {
 	} else if taskType == util.TASK_TYPE_2 {
 		SecondTask()
 	}
+	taskData.Id = c.serverId
+	c.producer.SendTaskCompleteMessage(&taskData)
 }

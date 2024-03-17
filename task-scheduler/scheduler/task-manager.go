@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	qm "tskscheduler/storage"
 	cnfg "tskscheduler/task-scheduler/config"
@@ -49,22 +50,22 @@ func (tm *TaskManager) receiveTask() {
 	case <-tm.done:
 		return
 	case taskData := <-tm.receive:
-		var taskMeta model.TaskMeta
-		json.Unmarshal(taskData, &taskMeta)
-		if taskMeta.Action == "ADD_TASK" {
-			tm.assignTask(&taskMeta)
+		var task model.Task
+		json.Unmarshal(taskData, &task)
+		if task.Meta.Action == "ADD_TASK" {
+			go tm.assignTask(&task)
 		}
-
+		fmt.Printf("end of the task assignment case")
 	}
 }
 
-func (tm *TaskManager) assignTask(taskMeta *model.TaskMeta) {
-	id, err := tm.supClient.SaveTask(taskMeta)
+func (tm *TaskManager) assignTask(task *model.Task) {
+	id, err := tm.supClient.SaveTask(&task.Meta)
 	if err != nil {
 		log.Printf("error saving task %v\n", err)
 		return
 	}
-	taskWeight, ok := tm.tasksWeight[taskMeta.TaskType]
+	taskWeight, ok := tm.tasksWeight[task.Meta.TaskType]
 	var minServer model.Servers
 	minLoadVal := 10000000
 	if ok {

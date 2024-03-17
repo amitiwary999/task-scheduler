@@ -143,11 +143,9 @@ func (c *Consumer) Handle(data chan []byte) {
 	select {
 	case <-c.done:
 		return
-	case <-c.delivery:
-		for d := range c.delivery {
-			data <- d.Body
-			log.Printf("consume body %v\n", d.Body)
-			d.Ack(true)
-		}
+	case d := <-c.delivery:
+		data <- d.Body
+		log.Printf("consume body %v\n", d.Body)
+		d.Ack(true)
 	}
 }

@@ -23,7 +23,6 @@ func main() {
 	}
 
 	done := make(chan int)
-	// producerKey := os.Getenv("RABBITMQ_EXCHANGE_KEY")
 	consumerKey := argv[0]
 	queueName := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
 	producerQueueName := os.Getenv("RABBITMQ_QUEUE")
@@ -43,6 +42,6 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	cordinator := task.NewCordinator(consumer, producer, supa, done)
+	cordinator := task.NewCordinator(consumer, producer, supa, done, consumerKey)
 	cordinator.Start()
 }
