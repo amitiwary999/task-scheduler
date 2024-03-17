@@ -44,4 +44,5 @@ func main() {
 	}
 	cordinator := task.NewCordinator(consumer, producer, supa, done, consumerKey)
 	cordinator.Start()
+	<-done
 }

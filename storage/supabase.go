@@ -72,7 +72,7 @@ func (s *SupabaseClient) SaveTask(meta *task.TaskMeta) (string, error) {
 }
 
 func (s *SupabaseClient) GetTaskById(taskId string) ([]byte, int64, error) {
-	url := fmt.Sprintf("%v?id=eq.%v&select=meta", s.baseUrl, taskId)
+	url := fmt.Sprintf("%v?id=eq.%v&select=id,meta", s.baseUrl, taskId)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
 		fmt.Printf("failed to create get task by id req %v\n", reqErr)
@@ -91,9 +91,9 @@ func (s *SupabaseClient) GetTaskById(taskId string) ([]byte, int64, error) {
 		return nil, 0, bodyErr
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		log.Printf("successfully insert %v\n", body)
+		log.Printf("successfully fetch %v\n", body)
 	} else {
-		log.Printf("error in insert with status %v\n", resp.StatusCode)
+		log.Printf("error in fetch with status %v\n", resp.StatusCode)
 	}
 
 	var count int64

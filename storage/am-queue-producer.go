@@ -115,7 +115,7 @@ func (c *Producer) SendTaskMessage(taskId, routingKey string) {
 
 func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
 	producerKey := os.Getenv("RABBITMQ_EXCHANGE_KEY")
-	fmt.Printf("send complete task %v \n", taskData.Meta.TaskId)
+	fmt.Printf("send complete task %v action %v taskid %v\n", taskData.Id, taskData.Meta.Action, taskData.Meta.TaskId)
 	body, err := json.Marshal(&taskData)
 	if err != nil {
 		fmt.Printf("complete task maessage body parse error %v\n", err)
