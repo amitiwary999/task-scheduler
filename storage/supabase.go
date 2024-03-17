@@ -71,7 +71,7 @@ func (s *SupabaseClient) SaveTask(meta *task.TaskMeta) (string, error) {
 	return id, nil
 }
 
-func (s *SupabaseClient) getTaskById(taskId string) ([]byte, int64, error) {
+func (s *SupabaseClient) GetTaskById(taskId string) ([]byte, int64, error) {
 	url := fmt.Sprintf("%v?id=eq.%v&select=meta", s.baseUrl, taskId)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	model "tskscheduler/servers/model"
+	util "tskscheduler/servers/util"
 	qm "tskscheduler/storage"
 )
 
@@ -41,7 +42,30 @@ func (c *cordinator) receiveScheduledTask() {
 		if err != nil {
 			fmt.Printf("error in decoding receive task %v\n", err)
 		} else {
+			var taskData model.Task
+			taskDataByte, count, err := c.supClient.GetTaskById(receiveTask.TaskId)
+			if err != nil {
+				fmt.Printf("error in getting task data %v\n", err)
+			}
 
+			if count <= 0 {
+				fmt.Printf("no data found for the task id %v\n", receiveTask.TaskId)
+			}
+
+			unMarshalErr := json.Unmarshal(taskDataByte, &taskData)
+			if unMarshalErr != nil {
+				fmt.Printf("un marshal error %v\n", unMarshalErr)
+			}
+			c.doTask(taskData)
 		}
+	}
+}
+
+func (c *cordinator) doTask(taskData model.Task) {
+	taskType := taskData.Meta.TaskType
+	if taskType == util.TASK_TYPE_1 {
+		FirstTask()
+	} else if taskType == util.TASK_TYPE_2 {
+		SecondTask()
 	}
 }
