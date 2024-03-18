@@ -59,7 +59,7 @@ func (tm *TaskManager) receiveTask() {
 				if task.Meta.Action == "ADD_TASK" {
 					go tm.assignTask(&task)
 				} else if task.Meta.Action == "COMPLETE_TASK" {
-					go tm.completeTask(task.Id, task.Meta.TaskType)
+					go tm.completeTask(task)
 				}
 			}
 		}
@@ -87,7 +87,9 @@ func (tm *TaskManager) assignTask(task *model.Task) {
 	tm.producer.SendTaskMessage(id, minServer.Id)
 }
 
-func (tm *TaskManager) completeTask(serverId, taskType string) {
+func (tm *TaskManager) completeTask(task model.Task) {
+	serverId := task.Meta.TaskId
+	taskType := task.Meta.TaskType
 	server := tm.servers[serverId]
 	taskWeight, ok := tm.tasksWeight[taskType]
 	if ok {

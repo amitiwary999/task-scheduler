@@ -26,3 +26,7 @@ type TaskMessage struct {
 	ServerId string `json:"server"`
 	TaskId   string `json:"task"`
 }
+
+type TaskStatus struct {
+	Status string `json:"status"`
+}

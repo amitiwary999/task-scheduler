@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"tskscheduler/task-scheduler/model"
 	task "tskscheduler/task-scheduler/model"
 
 	"github.com/google/uuid"
@@ -63,7 +64,7 @@ func (s *SupabaseClient) SaveTask(meta *task.TaskMeta) (string, error) {
 	if bodyErr != nil {
 		return "", bodyErr
 	}
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
 		log.Printf("successfully insert %v\n", body)
 	} else {
 		log.Printf("error in insert with status %v\n", resp.StatusCode)
@@ -90,7 +91,7 @@ func (s *SupabaseClient) GetTaskById(taskId string) ([]byte, int64, error) {
 	if bodyErr != nil {
 		return nil, 0, bodyErr
 	}
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
 		log.Printf("successfully fetch %v\n", body)
 	} else {
 		log.Printf("error in fetch with status %v\n", resp.StatusCode)
@@ -110,4 +111,39 @@ func (s *SupabaseClient) GetTaskById(taskId string) ([]byte, int64, error) {
 		}
 	}
 	return body, count, nil
+}
+
+func (s *SupabaseClient) UpdateTaskComplete(id string) error {
+	updateS := model.TaskStatus{
+		Status: "completed",
+	}
+	updateD, marshalErr := json.Marshal(updateS)
+	if marshalErr != nil {
+		fmt.Printf("marshal json for update task error %v\n", marshalErr)
+		return marshalErr
+	}
+	url := fmt.Sprintf("%v?id=eq.%v", s.baseUrl, id)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodPatch, url, bytes.NewBuffer(updateD))
+	if reqErr != nil {
+		fmt.Printf("req err creation err %v\n", reqErr)
+	}
+	authToken := fmt.Sprintf("Bearer %v", os.Getenv("SUPABASE_AUTH"))
+	req.Header.Set("Authorization", authToken)
+	req.Header.Set("apiKey", os.Getenv("SUPABASE_KEY"))
+	resp, respErr := s.httpClinet.Do(req)
+	if respErr != nil {
+		return respErr
+	}
+	defer resp.Body.Close()
+	body, bodyErr := io.ReadAll(resp.Body)
+	if bodyErr != nil {
+		return bodyErr
+	}
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		log.Printf("successfully fetch %v\n", body)
+		return nil
+	} else {
+		log.Printf("error in task status update %v\n", resp.StatusCode)
+		return fmt.Errorf("error in task status update %v", resp.StatusCode)
+	}
 }

@@ -72,7 +72,7 @@ func (c *cordinator) doTask(taskData model.Task) {
 	} else if taskType == util.TASK_TYPE_2 {
 		SecondTask()
 	}
-	taskData.Id = c.serverId
+	taskData.Meta.TaskId = c.serverId
 	taskData.Meta.Action = "COMPLETE_TASK"
 	c.producer.SendTaskCompleteMessage(&taskData)
 }
