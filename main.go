@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	storage "tskscheduler/storage"
 	cnfg "tskscheduler/task-scheduler/config"
 	manag "tskscheduler/task-scheduler/scheduler"
+	storage "tskscheduler/task-scheduler/storage"
 
 	"github.com/joho/godotenv"
 )

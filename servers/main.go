@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 	task "tskscheduler/servers/tasks"
-	storage "tskscheduler/storage"
+	storage "tskscheduler/task-scheduler/storage"
 
 	"github.com/joho/godotenv"
 )

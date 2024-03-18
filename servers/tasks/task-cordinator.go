@@ -5,7 +5,7 @@ import (
 	"fmt"
 	model "tskscheduler/servers/model"
 	util "tskscheduler/servers/util"
-	qm "tskscheduler/storage"
+	qm "tskscheduler/task-scheduler/storage"
 )
 
 type cordinator struct {
