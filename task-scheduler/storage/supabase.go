@@ -92,7 +92,7 @@ func (s *SupabaseClient) GetTaskById(taskId string) ([]byte, int64, error) {
 		return nil, 0, bodyErr
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
-		log.Printf("successfully fetch %v\n", body)
+		log.Printf("successfully fetch \n")
 	} else {
 		log.Printf("error in fetch with status %v\n", resp.StatusCode)
 	}
@@ -135,12 +135,12 @@ func (s *SupabaseClient) UpdateTaskComplete(id string) error {
 		return respErr
 	}
 	defer resp.Body.Close()
-	body, bodyErr := io.ReadAll(resp.Body)
+	_, bodyErr := io.ReadAll(resp.Body)
 	if bodyErr != nil {
 		return bodyErr
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
-		log.Printf("successfully fetch %v\n", body)
+		log.Printf("successfully update \n")
 		return nil
 	} else {
 		log.Printf("error in task status update %v\n", resp.StatusCode)

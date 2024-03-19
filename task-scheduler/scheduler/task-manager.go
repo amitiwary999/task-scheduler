@@ -22,8 +22,8 @@ type TaskManager struct {
 func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
-	for _, server := range config.Servers {
-		servers[server.Id] = &server
+	for i := range config.Servers {
+		servers[config.Servers[i].Id] = &config.Servers[i]
 	}
 
 	for _, taskWeight := range config.TaskWeight {
@@ -93,6 +93,7 @@ func (tm *TaskManager) completeTask(task model.Task) {
 	server := tm.servers[serverId]
 	taskWeight, ok := tm.tasksWeight[taskType]
 	if ok {
+		fmt.Printf("server load before reduce %v for id %v\n", server.Load, server.Id)
 		server.Load = server.Load - taskWeight.Weight
 		fmt.Printf("server load reduced %v for id %v\n", server.Load, server.Id)
 	}

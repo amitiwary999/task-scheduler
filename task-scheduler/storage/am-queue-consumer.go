@@ -146,9 +146,7 @@ func (c *Consumer) Handle(data chan []byte) {
 			return
 		case d := <-c.delivery:
 			data <- d.Body
-			log.Printf("consume body %v\n", d.Body)
 			d.Ack(true)
-			fmt.Printf("end of the handle select\n")
 		}
 	}
 }
