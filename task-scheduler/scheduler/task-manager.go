@@ -97,5 +97,6 @@ func (tm *TaskManager) completeTask(task model.Task) {
 		server.Load = server.Load - taskWeight.Weight
 		fmt.Printf("server load reduced %v for id %v\n", server.Load, server.Id)
 	}
+	tm.supClient.UpdateTaskComplete(task.Id)
 	fmt.Printf("complete task action\n")
 }
