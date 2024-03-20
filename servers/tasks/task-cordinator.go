@@ -9,22 +9,24 @@ import (
 )
 
 type cordinator struct {
-	done      chan int
-	consumer  *qm.Consumer
-	producer  *qm.Producer
-	supClient *qm.SupabaseClient
-	receive   chan []byte
-	serverId  string
+	done        chan int
+	consumer    *qm.Consumer
+	producer    *qm.Producer
+	supClient   *qm.SupabaseClient
+	redisClient *qm.RedisClient
+	receive     chan []byte
+	serverId    string
 }
 
-func NewCordinator(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, serverId string) *cordinator {
+func NewCordinator(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, redisClient *qm.RedisClient, done chan int, serverId string) *cordinator {
 	return &cordinator{
-		done:      make(chan int),
-		consumer:  consumer,
-		producer:  producer,
-		supClient: supClient,
-		receive:   make(chan []byte),
-		serverId:  serverId,
+		done:        make(chan int),
+		consumer:    consumer,
+		producer:    producer,
+		supClient:   supClient,
+		redisClient: redisClient,
+		receive:     make(chan []byte),
+		serverId:    serverId,
 	}
 }
 

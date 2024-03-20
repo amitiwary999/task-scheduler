@@ -42,7 +42,11 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	cordinator := task.NewCordinator(consumer, producer, supa, done, consumerKey)
+	redisClient, redisInitErr := storage.NewRedisClient()
+	if redisInitErr != nil {
+		fmt.Printf("redis init error %v\n", redisInitErr)
+	}
+	cordinator := task.NewCordinator(consumer, producer, supa, redisClient, done, consumerKey)
 	cordinator.Start()
 	<-done
 }
