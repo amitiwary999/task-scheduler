@@ -24,8 +24,9 @@ func main() {
 
 	done := make(chan int)
 	consumerKey := argv[0]
-	queueName := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
+	queueNamePrefix := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
 	producerQueueName := os.Getenv("RABBITMQ_QUEUE")
+	queueName := fmt.Sprintf("%v_%v", queueNamePrefix, consumerKey)
 	consumer, err := storage.NewConsumer(done, queueName, consumerKey)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
