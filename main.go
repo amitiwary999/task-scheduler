@@ -36,11 +36,7 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	redisClient, redisInitErr := storage.NewRedisClient()
-	if redisInitErr != nil {
-		fmt.Printf("redis init error %v\n", redisInitErr)
-	}
-	taskM := manag.InitManager(consumer, producer, supa, redisClient, done, cnfg.LoadConfig())
+	taskM := manag.InitManager(consumer, producer, supa, done, cnfg.LoadConfig())
 	taskM.StartManager()
 	<-done
 
