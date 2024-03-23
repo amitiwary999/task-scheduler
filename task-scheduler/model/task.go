@@ -30,3 +30,8 @@ type TaskMessage struct {
 type TaskStatus struct {
 	Status string `json:"status"`
 }
+
+type JoinData struct {
+	ServerId string `json:"serverId"`
+	Status   int    `json:"status"`
+}

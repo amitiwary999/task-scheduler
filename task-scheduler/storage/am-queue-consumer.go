@@ -150,3 +150,42 @@ func (c *Consumer) Handle(data chan []byte) {
 		}
 	}
 }
+
+func (c *Consumer) ServerJoinHandle(serverJoin chan []byte) error {
+	serverJoinQueue := os.Getenv("SERVER_JOIN_RABBITMQ_QUEUE")
+	serverJoinKey := os.Getenv("RABBITMQ_SERVER_JOIN_EXCHANGE_KEY")
+	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+
+	queue, err := c.channel.QueueDeclare(serverJoinQueue, true, false, false, false, nil)
+	if err != nil {
+		fmt.Printf("queue declare failed %v\n", err)
+		return err
+	}
+
+	bindErr := c.channel.QueueBind(queue.Name, serverJoinKey, exchange, false, nil)
+	if bindErr != nil {
+		fmt.Printf("failed to bind queue %v error %v\n", queue.Name, bindErr)
+		return bindErr
+	}
+	deliveries, err := c.channel.Consume(
+		queue.Name, // name
+		c.tag,      // consumerTag,
+		false,      // autoAck
+		false,      // exclusive
+		false,      // noLocal
+		false,      // noWait
+		nil,        // arguments
+	)
+	if err != nil {
+		return err
+	}
+	for {
+		select {
+		case <-c.done:
+			return nil
+		case d := <-deliveries:
+			serverJoin <- d.Body
+			d.Ack(true)
+		}
+	}
+}

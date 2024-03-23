@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	util "tskscheduler/task-scheduler/util"
+
 	cache "github.com/patrickmn/go-cache"
 )
 
@@ -33,4 +35,30 @@ func NewLocalCache() (*LocalCache, error) {
 	return &LocalCache{
 		cache: cache,
 	}, nil
+}
+
+func (lc *LocalCache) AddNewServer(serverId string) {
+	servrD, key := lc.cache.Get(util.LOCAL_CACHE_KEY_SERVER_JOIN)
+	if key {
+		serversId := servrD.([]string)
+		serversId = append(serversId, serverId)
+		lc.cache.Set(util.LOCAL_CACHE_KEY_SERVER_JOIN, serversId, 0)
+	} else {
+		lc.cache.Set(util.LOCAL_CACHE_KEY_SERVER_JOIN, []string{serverId}, 0)
+	}
+}
+
+func (lc *LocalCache) RemoveServer(removedServerId string) {
+	servrD, key := lc.cache.Get(util.LOCAL_CACHE_KEY_SERVER_JOIN)
+	if key {
+		serversId := servrD.([]string)
+		updatedServerIds := serversId
+		for i, serverId := range serversId {
+			if removedServerId == serverId {
+				updatedServerIds = append(serversId[:i], serversId[i+1:]...)
+				break
+			}
+		}
+		lc.cache.Set(util.LOCAL_CACHE_KEY_SERVER_JOIN, updatedServerIds, 0)
+	}
 }

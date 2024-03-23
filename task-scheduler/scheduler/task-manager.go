@@ -17,6 +17,7 @@ type TaskManager struct {
 	supClient   *qm.SupabaseClient
 	localCache  *qm.LocalCache
 	receive     chan []byte
+	serverJoin  chan []byte
 	done        chan int
 }
 
@@ -38,6 +39,7 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 		supClient:   supClient,
 		localCache:  localCache,
 		receive:     make(chan []byte),
+		serverJoin:  make(chan []byte),
 		done:        done,
 	}
 }
@@ -45,6 +47,8 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 func (tm *TaskManager) StartManager() {
 	go tm.consumer.Handle(tm.receive)
 	go tm.receiveTask()
+	go tm.consumer.ServerJoinHandle(tm.serverJoin)
+	go tm.receiveServerJoinMessage()
 }
 
 func (tm *TaskManager) receiveTask() {
@@ -62,6 +66,27 @@ func (tm *TaskManager) receiveTask() {
 					go tm.assignTask(&task)
 				} else if task.Meta.Action == "COMPLETE_TASK" {
 					go tm.completeTask(task)
+				}
+			}
+		}
+	}
+}
+
+func (tm *TaskManager) receiveServerJoinMessage() {
+	for {
+		select {
+		case <-tm.done:
+			return
+		case joinData := <-tm.serverJoin:
+			var join model.JoinData
+			err := json.Unmarshal(joinData, &join)
+			if err != nil {
+				fmt.Printf("json unmarshal error in server join %v\n", err)
+			} else {
+				if join.Status == 1 {
+					tm.localCache.AddNewServer(join.ServerId)
+				} else {
+					tm.localCache.RemoveServer(join.ServerId)
 				}
 			}
 		}
