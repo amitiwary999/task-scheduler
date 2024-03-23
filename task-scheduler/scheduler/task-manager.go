@@ -15,11 +15,12 @@ type TaskManager struct {
 	consumer    *qm.Consumer
 	producer    *qm.Producer
 	supClient   *qm.SupabaseClient
+	localCache  *qm.LocalCache
 	receive     chan []byte
 	done        chan int
 }
 
-func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
+func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, localCache *qm.LocalCache, done chan int, config *cnfg.Config) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
 	for i := range config.Servers {
@@ -35,6 +36,7 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 		producer:    producer,
 		consumer:    consumer,
 		supClient:   supClient,
+		localCache:  localCache,
 		receive:     make(chan []byte),
 		done:        done,
 	}

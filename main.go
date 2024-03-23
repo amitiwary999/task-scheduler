@@ -36,7 +36,11 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	taskM := manag.InitManager(consumer, producer, supa, done, cnfg.LoadConfig())
+	localCache, localCacheInitError := storage.NewLocalCache()
+	if localCacheInitError != nil {
+		fmt.Printf("local cache init error %v\n", localCacheInitError)
+	}
+	taskM := manag.InitManager(consumer, producer, supa, localCache, done, cnfg.LoadConfig())
 	taskM.StartManager()
 	<-done
 
