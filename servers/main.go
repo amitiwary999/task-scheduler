@@ -1,9 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
 	"os"
+	model "tskscheduler/servers/model"
 	task "tskscheduler/servers/tasks"
 	storage "tskscheduler/task-scheduler/storage"
 
@@ -11,11 +12,6 @@ import (
 )
 
 func main() {
-	argv := os.Args[1:]
-	if len(argv) == 0 {
-		log.Printf("please provide the queue name")
-		return
-	}
 	err := godotenv.Load("/Users/amitt/Documents/Personal Data/personalproj/TaskScheduler/.env")
 	if err != nil {
 		fmt.Printf("error load env %v\n", err)
@@ -23,16 +19,7 @@ func main() {
 	}
 
 	done := make(chan int)
-	consumerKey := argv[0]
-	queueNamePrefix := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
 	producerQueueName := os.Getenv("RABBITMQ_QUEUE")
-	queueName := fmt.Sprintf("%v_%v", queueNamePrefix, consumerKey)
-	consumer, err := storage.NewConsumer(done, queueName, consumerKey)
-	if err != nil {
-		fmt.Printf("amq connection error %v\n", err)
-	} else {
-		consumer.SetupCloseHandler()
-	}
 	producer, err := storage.NewProducer(done, producerQueueName)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
@@ -43,7 +30,31 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	cordinator := task.NewCordinator(consumer, producer, supa, done, consumerKey)
-	cordinator.Start()
+	unusedServerByte, err := supa.GetUnusedServer()
+	if err != nil {
+		fmt.Printf("error in getting single unused server %v\n", err)
+	}
+	var serversData []model.JoinData
+	json.Unmarshal(unusedServerByte, &serversData)
+	fmt.Printf("servers data %v\n", serversData)
+	if len(serversData) > 0 {
+		serverData := serversData[0]
+		consumerKey := serverData.ServerId
+		updateErr := supa.UpdateServerStatus(serverData.ServerId, 1)
+		if updateErr != nil {
+			fmt.Printf("error in updating the server join status %v\n", updateErr)
+		}
+		serverData.Status = 1
+		producer.SendServerJoinMessage(&serverData)
+
+		consumer, err := storage.NewConsumer(done)
+		if err != nil {
+			fmt.Printf("amq connection error %v\n", err)
+		} else {
+			consumer.SetupCloseHandler()
+		}
+		cordinator := task.NewCordinator(consumer, producer, supa, done, consumerKey)
+		cordinator.Start()
+	}
 	<-done
 }

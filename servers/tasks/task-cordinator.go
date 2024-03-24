@@ -3,6 +3,7 @@ package task
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	model "tskscheduler/servers/model"
 	util "tskscheduler/servers/util"
 	qm "tskscheduler/task-scheduler/storage"
@@ -18,21 +19,6 @@ type cordinator struct {
 }
 
 func NewCordinator(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, serverId string) *cordinator {
-	unusedServerByte, err := supClient.GetUnusedServer()
-	if err != nil {
-		fmt.Printf("error in getting single unused server %v\n", err)
-	}
-	var serversData []model.JoinData
-	json.Unmarshal(unusedServerByte, &serversData)
-	if len(serversData) > 0 {
-		serverData := serversData[0]
-		updateErr := supClient.UpdateServerStatus(serverData.ServerId, 1)
-		if updateErr != nil {
-			fmt.Printf("error in updating the server join status %v\n", updateErr)
-		}
-		serverData.Status = 1
-		producer.SendServerJoinMessage(&serverData)
-	}
 	return &cordinator{
 		done:      make(chan int),
 		consumer:  consumer,
@@ -44,7 +30,10 @@ func NewCordinator(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.S
 }
 
 func (c *cordinator) Start() {
-	go c.consumer.Handle(c.receive)
+	queueNamePrefix := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
+	queueName := fmt.Sprintf("%v_%v", queueNamePrefix, c.serverId)
+
+	go c.consumer.Handle(c.receive, queueName, c.serverId)
 	go c.receiveScheduledTask()
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	cnfg "tskscheduler/task-scheduler/config"
 	model "tskscheduler/task-scheduler/model"
 	qm "tskscheduler/task-scheduler/storage"
@@ -24,9 +25,9 @@ type TaskManager struct {
 func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, localCache *qm.LocalCache, done chan int, config *cnfg.Config) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
-	for i := range config.Servers {
-		servers[config.Servers[i].Id] = &config.Servers[i]
-	}
+	// for i := range config.Servers {
+	// 	servers[config.Servers[i].Id] = &config.Servers[i]
+	// }
 
 	for _, taskWeight := range config.TaskWeight {
 		tasksWeight[taskWeight.Type] = taskWeight
@@ -63,7 +64,9 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 }
 
 func (tm *TaskManager) StartManager() {
-	go tm.consumer.Handle(tm.receive)
+	key := os.Getenv("RABBITMQ_EXCHANGE_KEY")
+	queueName := os.Getenv("RABBITMQ_QUEUE")
+	go tm.consumer.Handle(tm.receive, queueName, key)
 	go tm.receiveTask()
 	go tm.consumer.ServerJoinHandle(tm.serverJoin)
 	go tm.receiveServerJoinMessage()

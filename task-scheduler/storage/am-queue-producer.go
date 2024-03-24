@@ -77,17 +77,17 @@ func NewProducer(done chan int, queueName string) (*Producer, error) {
 	}
 
 	log.Printf("declared Exchange, declaring Queue %q", queueName)
-	_, err = c.channel.QueueDeclare(
-		queueName, // name of the queue
-		true,      // durable
-		false,     // delete when unused
-		false,     // exclusive
-		false,     // noWait
-		nil,       // arguments
-	)
-	if err != nil {
-		return nil, fmt.Errorf("Queue Declare: %s", err)
-	}
+	// _, err = c.channel.QueueDeclare(
+	// 	queueName, // name of the queue
+	// 	true,      // durable
+	// 	false,     // delete when unused
+	// 	false,     // exclusive
+	// 	false,     // noWait
+	// 	nil,       // arguments
+	// )
+	// if err != nil {
+	// 	return nil, fmt.Errorf("Queue Declare: %s", err)
+	// }
 
 	return c, nil
 }
@@ -132,13 +132,14 @@ func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
 }
 
 func (c *Producer) SendServerJoinMessage(serverJoinData *producerModel.JoinData) {
-	key := serverJoinData.ServerId
+	fmt.Printf("send server join message \n")
+	key := os.Getenv("RABBITMQ_SERVER_JOIN_EXCHANGE_KEY")
 	body, err := json.Marshal(&serverJoinData)
 	if err != nil {
 		fmt.Printf("faield to marshal server join data producer %v\n", err)
 	}
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
-	publishErr := c.channel.PublishWithContext(context.Background(), exchange, key, false, true, amqp.Publishing{
+	publishErr := c.channel.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
 		ContentType: "text/plain",
 		Body:        body,
 	})

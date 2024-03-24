@@ -95,7 +95,7 @@ func (s *SupabaseClient) GetTaskById(taskId string) ([]byte, int64, error) {
 		return nil, 0, bodyErr
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
-		log.Printf("successfully fetch \n")
+		log.Printf("successfully fetch task detail\n")
 	} else {
 		log.Printf("error in fetch with status %v\n", resp.StatusCode)
 	}
@@ -154,7 +154,7 @@ func (s *SupabaseClient) UpdateTaskComplete(id string) error {
 
 func (s *SupabaseClient) GetUnusedServer() ([]byte, error) {
 	jobServersTable := os.Getenv("SUPABASE_JOBSERVERS")
-	url := fmt.Sprintf("%v%v?id=eq.0&limit=1&select=serverId,status", s.baseUrl, jobServersTable)
+	url := fmt.Sprintf("%v%v?status=eq.0&limit=1&select=serverId,status", s.baseUrl, jobServersTable)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
 		fmt.Printf("failed to create get task by id req %v\n", reqErr)
@@ -173,7 +173,7 @@ func (s *SupabaseClient) GetUnusedServer() ([]byte, error) {
 		return nil, bodyErr
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
-		log.Printf("successfully fetch \n")
+		log.Printf("successfully fetch one unused server\n")
 		return body, nil
 	} else {
 		log.Printf("error in fetch with status %v\n", resp.StatusCode)
@@ -219,7 +219,7 @@ func (s *SupabaseClient) UpdateServerStatus(serverId string, status int) error {
 
 func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 	jobServersTable := os.Getenv("SUPABASE_JOBSERVERS")
-	url := fmt.Sprintf("%v%v?id=eq.1&select=serverId,status", s.baseUrl, jobServersTable)
+	url := fmt.Sprintf("%v%v?status=eq.1&select=serverId,status", s.baseUrl, jobServersTable)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
 		fmt.Printf("failed to create get task by id req %v\n", reqErr)
@@ -238,7 +238,7 @@ func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 		return nil, bodyErr
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
-		log.Printf("successfully fetch \n")
+		log.Printf("successfully fetch all used server \n")
 		return body, nil
 	} else {
 		log.Printf("error in fetch with status %v\n", resp.StatusCode)

@@ -31,7 +31,7 @@ func (consumer *Consumer) SetupCloseHandler() {
 	}()
 }
 
-func NewConsumer(done chan int, queueName string, key string) (*Consumer, error) {
+func NewConsumer(done chan int) (*Consumer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
 	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
@@ -77,49 +77,6 @@ func NewConsumer(done chan int, queueName string, key string) (*Consumer, error)
 		return nil, fmt.Errorf("Exchange Declare: %s", err)
 	}
 
-	log.Printf("declared Exchange, declaring Queue %q", queueName)
-	queue, err := c.channel.QueueDeclare(
-		queueName, // name of the queue
-		true,      // durable
-		false,     // delete when unused
-		false,     // exclusive
-		false,     // noWait
-		nil,       // arguments
-	)
-	if err != nil {
-		return nil, fmt.Errorf("Queue Declare: %s", err)
-	}
-
-	log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
-		queue.Name, queue.Messages, queue.Consumers, key)
-
-	if err = c.channel.QueueBind(
-		queue.Name, // name of the queue
-		key,        // bindingKey
-		exchange,   // sourceExchange
-		false,      // noWait
-		nil,        // arguments
-	); err != nil {
-		return nil, fmt.Errorf("Queue Bind: %s", err)
-	}
-
-	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
-	deliveries, err := c.channel.Consume(
-		queue.Name, // name
-		c.tag,      // consumerTag,
-		false,      // autoAck
-		false,      // exclusive
-		false,      // noLocal
-		false,      // noWait
-		nil,        // arguments
-	)
-	if err != nil {
-		return nil, fmt.Errorf("Queue Consume: %s", err)
-	}
-
-	c.delivery = deliveries
-	//go handle(deliveries, c.done)
-
 	return c, nil
 }
 
@@ -139,13 +96,53 @@ func (c *Consumer) Shutdown() error {
 	return nil
 }
 
-func (c *Consumer) Handle(data chan []byte) {
+func (c *Consumer) Handle(data chan []byte, queueName string, key string) error {
+	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	queue, err := c.channel.QueueDeclare(
+		queueName, // name of the queue
+		true,      // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // noWait
+		nil,       // arguments
+	)
+	if err != nil {
+		return fmt.Errorf("Queue Declare: %s", err)
+	}
+
+	log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
+		queue.Name, queue.Messages, queue.Consumers, key)
+
+	if err = c.channel.QueueBind(
+		queue.Name, // name of the queue
+		key,        // bindingKey
+		exchange,   // sourceExchange
+		false,      // noWait
+		nil,        // arguments
+	); err != nil {
+		return fmt.Errorf("Queue Bind: %s", err)
+	}
+
+	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
+	deliveries, err := c.channel.Consume(
+		queue.Name, // name
+		c.tag,      // consumerTag,
+		false,      // autoAck
+		false,      // exclusive
+		false,      // noLocal
+		false,      // noWait
+		nil,        // arguments
+	)
+	if err != nil {
+		return fmt.Errorf("Queue Consume: %s", err)
+	}
 	for {
 		select {
 		case <-c.done:
-			return
-		case d := <-c.delivery:
-			data <- d.Body
+			return nil
+		case d := <-deliveries:
+			fmt.Printf("data in delivery %v routingkey %v time %v exchange %v type %v userId %v deliveryMode %v consumertag %v appId %v\n", d.Body, d.RoutingKey, d.Timestamp, d.Exchange, d.Type, d.UserId, d.DeliveryMode, d.ConsumerTag, d.AppId)
+			//	data <- d.Body
 			d.Ack(true)
 		}
 	}
@@ -168,13 +165,13 @@ func (c *Consumer) ServerJoinHandle(serverJoin chan []byte) error {
 		return bindErr
 	}
 	deliveries, err := c.channel.Consume(
-		queue.Name, // name
-		c.tag,      // consumerTag,
-		false,      // autoAck
-		false,      // exclusive
-		false,      // noLocal
-		false,      // noWait
-		nil,        // arguments
+		queue.Name,    // name
+		"server-join", // consumerTag,
+		false,         // autoAck
+		false,         // exclusive
+		false,         // noLocal
+		false,         // noWait
+		nil,           // arguments
 	)
 	if err != nil {
 		return err
