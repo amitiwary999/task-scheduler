@@ -31,6 +31,20 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 	for _, taskWeight := range config.TaskWeight {
 		tasksWeight[taskWeight.Type] = taskWeight
 	}
+
+	var serversJoinData []model.JoinData
+	serversByte, serversErr := supClient.GetAllUsedServer()
+
+	if serversErr != nil {
+		fmt.Printf("error in get all used servers %v\n", serversErr)
+	} else {
+		json.Unmarshal(serversByte, &serversJoinData)
+
+		for _, serverJonData := range serversJoinData {
+			localCache.AddNewServer(serverJonData.ServerId)
+		}
+	}
+
 	return &TaskManager{
 		tasksWeight: tasksWeight,
 		servers:     servers,

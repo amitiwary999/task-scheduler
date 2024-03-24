@@ -18,6 +18,21 @@ type cordinator struct {
 }
 
 func NewCordinator(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, serverId string) *cordinator {
+	unusedServerByte, err := supClient.GetUnusedServer()
+	if err != nil {
+		fmt.Printf("error in getting single unused server %v\n", err)
+	}
+	var serversData []model.JoinData
+	json.Unmarshal(unusedServerByte, &serversData)
+	if len(serversData) > 0 {
+		serverData := serversData[0]
+		updateErr := supClient.UpdateServerStatus(serverData.ServerId, 1)
+		if updateErr != nil {
+			fmt.Printf("error in updating the server join status %v\n", updateErr)
+		}
+		serverData.Status = 1
+		producer.SendServerJoinMessage(&serverData)
+	}
 	return &cordinator{
 		done:      make(chan int),
 		consumer:  consumer,

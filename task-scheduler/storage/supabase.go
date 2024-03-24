@@ -181,10 +181,10 @@ func (s *SupabaseClient) GetUnusedServer() ([]byte, error) {
 	}
 }
 
-func (s *SupabaseClient) UpdateServerStatus(serverId string) error {
+func (s *SupabaseClient) UpdateServerStatus(serverId string, status int) error {
 	jobServersTable := os.Getenv("SUPABASE_JOBSERVERS")
 	updateS := serverModel.UpdateServerStatus{
-		Status: 1,
+		Status: status,
 	}
 	updateD, marshalErr := json.Marshal(updateS)
 	if marshalErr != nil {
@@ -214,5 +214,34 @@ func (s *SupabaseClient) UpdateServerStatus(serverId string) error {
 	} else {
 		log.Printf("error in task status update %v\n", resp.StatusCode)
 		return fmt.Errorf("error in task status update %v", resp.StatusCode)
+	}
+}
+
+func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
+	jobServersTable := os.Getenv("SUPABASE_JOBSERVERS")
+	url := fmt.Sprintf("%v%v?id=eq.1&select=serverId,status", s.baseUrl, jobServersTable)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if reqErr != nil {
+		fmt.Printf("failed to create get task by id req %v\n", reqErr)
+		return nil, reqErr
+	}
+	authToken := fmt.Sprintf("Bearer %v", os.Getenv("SUPABASE_AUTH"))
+	req.Header.Set("Authorization", authToken)
+	req.Header.Set("apiKey", os.Getenv("SUPABASE_KEY"))
+	resp, respErr := s.httpClinet.Do(req)
+	if respErr != nil {
+		return nil, respErr
+	}
+	defer resp.Body.Close()
+	body, bodyErr := io.ReadAll(resp.Body)
+	if bodyErr != nil {
+		return nil, bodyErr
+	}
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		log.Printf("successfully fetch \n")
+		return body, nil
+	} else {
+		log.Printf("error in fetch with status %v\n", resp.StatusCode)
+		return nil, fmt.Errorf("failed to get the unused server")
 	}
 }
