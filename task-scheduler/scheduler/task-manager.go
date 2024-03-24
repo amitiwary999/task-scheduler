@@ -41,7 +41,11 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 		json.Unmarshal(serversByte, &serversJoinData)
 
 		for _, serverJonData := range serversJoinData {
-			localCache.AddNewServer(serverJonData.ServerId)
+			server := model.Servers{
+				Id:   serverJonData.ServerId,
+				Load: 0,
+			}
+			servers[serverJonData.ServerId] = &server
 		}
 	}
 
@@ -98,9 +102,19 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 				fmt.Printf("json unmarshal error in server join %v\n", err)
 			} else {
 				if join.Status == 1 {
-					tm.localCache.AddNewServer(join.ServerId)
+					server := model.Servers{
+						Id:   join.ServerId,
+						Load: 0,
+					}
+					tm.servers[join.ServerId] = &server
 				} else {
-					tm.localCache.RemoveServer(join.ServerId)
+					serverId := join.ServerId
+					for _, server := range tm.servers {
+						if server.Id == serverId {
+							delete(tm.servers, serverId)
+							break
+						}
+					}
 				}
 			}
 		}

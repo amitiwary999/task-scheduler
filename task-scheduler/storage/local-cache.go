@@ -37,6 +37,16 @@ func NewLocalCache() (*LocalCache, error) {
 	}, nil
 }
 
+func (lc *LocalCache) GetServers() ([]string, error) {
+	servrD, key := lc.cache.Get(util.LOCAL_CACHE_KEY_SERVER_JOIN)
+	if key {
+		serversId := servrD.([]string)
+		return serversId, nil
+	} else {
+		return nil, fmt.Errorf("error in getting the server from local cache")
+	}
+}
+
 func (lc *LocalCache) AddNewServer(serverId string) {
 	servrD, key := lc.cache.Get(util.LOCAL_CACHE_KEY_SERVER_JOIN)
 	if key {
