@@ -127,6 +127,23 @@ func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
 	})
 
 	if publishErr != nil {
-		fmt.Printf("error sendig complete task to server %v\n", err)
+		fmt.Printf("error sendig complete task to server %v\n", publishErr)
+	}
+}
+
+func (c *Producer) SendServerJoinMessage(serverJoinData *producerModel.JoinData) {
+	key := serverJoinData.ServerId
+	body, err := json.Marshal(&serverJoinData)
+	if err != nil {
+		fmt.Printf("faield to marshal server join data producer %v\n", err)
+	}
+	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	publishErr := c.channel.PublishWithContext(context.Background(), exchange, key, false, true, amqp.Publishing{
+		ContentType: "text/plain",
+		Body:        body,
+	})
+
+	if publishErr != nil {
+		fmt.Printf("error sendig server join message %v\n", publishErr)
 	}
 }

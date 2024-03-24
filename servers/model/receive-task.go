@@ -20,3 +20,12 @@ type Task struct {
 	Id   string   `json:"id"`
 	Meta TaskMeta `json:"meta"`
 }
+
+type JoinData struct {
+	ServerId string `json:"serverId"`
+	Status   int    `json:"status"`
+}
+
+type UpdateServerStatus struct {
+	Status int `json:"status"`
+}
