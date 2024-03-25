@@ -141,8 +141,7 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string) error 
 		case <-c.done:
 			return nil
 		case d := <-deliveries:
-			fmt.Printf("data in delivery %v routingkey %v time %v exchange %v type %v userId %v deliveryMode %v consumertag %v appId %v\n", d.Body, d.RoutingKey, d.Timestamp, d.Exchange, d.Type, d.UserId, d.DeliveryMode, d.ConsumerTag, d.AppId)
-			//	data <- d.Body
+			data <- d.Body
 			d.Ack(true)
 		}
 	}

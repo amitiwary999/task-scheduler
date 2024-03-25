@@ -25,9 +25,6 @@ type TaskManager struct {
 func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, localCache *qm.LocalCache, done chan int, config *cnfg.Config) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
-	// for i := range config.Servers {
-	// 	servers[config.Servers[i].Id] = &config.Servers[i]
-	// }
 
 	for _, taskWeight := range config.TaskWeight {
 		tasksWeight[taskWeight.Type] = taskWeight
@@ -104,6 +101,7 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 			if err != nil {
 				fmt.Printf("json unmarshal error in server join %v\n", err)
 			} else {
+				fmt.Printf("receive server join message %v server %v\n", join.Status, join.ServerId)
 				if join.Status == 1 {
 					server := model.Servers{
 						Id:   join.ServerId,
@@ -135,6 +133,7 @@ func (tm *TaskManager) assignTask(task *model.Task) {
 	minLoadVal := 10000000
 	if ok {
 		for _, server := range tm.servers {
+			fmt.Printf("load of the server in assign task %v server %v\n", server.Load, server.Id)
 			if taskWeight.Weight+server.Load < minLoadVal {
 				minServer = server
 				minLoadVal = server.Load + taskWeight.Weight
