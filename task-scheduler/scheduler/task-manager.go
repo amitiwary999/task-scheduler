@@ -16,13 +16,12 @@ type TaskManager struct {
 	consumer    *qm.Consumer
 	producer    *qm.Producer
 	supClient   *qm.SupabaseClient
-	localCache  *qm.LocalCache
 	receive     chan []byte
 	serverJoin  chan []byte
 	done        chan int
 }
 
-func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, localCache *qm.LocalCache, done chan int, config *cnfg.Config) *TaskManager {
+func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
 
@@ -53,7 +52,6 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 		producer:    producer,
 		consumer:    consumer,
 		supClient:   supClient,
-		localCache:  localCache,
 		receive:     make(chan []byte),
 		serverJoin:  make(chan []byte),
 		done:        done,
@@ -139,9 +137,11 @@ func (tm *TaskManager) assignTask(task *model.Task) {
 				minLoadVal = server.Load + taskWeight.Weight
 			}
 		}
+		if minServer != nil {
+			minServer.Load = minLoadVal
+			tm.producer.SendTaskMessage(id, minServer.Id)
+		}
 	}
-	minServer.Load = minLoadVal
-	tm.producer.SendTaskMessage(id, minServer.Id)
 }
 
 func (tm *TaskManager) completeTask(task model.Task) {
