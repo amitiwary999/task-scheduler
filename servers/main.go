@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	model "tskscheduler/servers/model"
 	task "tskscheduler/servers/tasks"
 	storage "tskscheduler/task-scheduler/storage"
@@ -17,7 +19,8 @@ func main() {
 		fmt.Printf("error load env %v\n", err)
 		return
 	}
-
+	gracefulShutdown := make(chan os.Signal, 1)
+	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
 	done := make(chan int)
 	producerQueueName := os.Getenv("RABBITMQ_QUEUE")
 	producer, err := storage.NewProducer(done, producerQueueName)
@@ -56,5 +59,19 @@ func main() {
 		cordinator := task.NewCordinator(consumer, producer, supa, done, consumerKey)
 		cordinator.Start()
 	}
-	<-done
+	<-gracefulShutdown
+	if len(serversData) > 0 {
+		serverId := serversData[0].ServerId
+		serverLeaveData := model.JoinData{
+			ServerId: serverId,
+			Status:   0,
+		}
+		updateErr := supa.UpdateServerStatus(serverId, 0)
+		if updateErr != nil {
+			fmt.Printf("failed to remove the server status on leave")
+		}
+		producer.SendServerJoinMessage(&serverLeaveData)
+	}
+	done <- 1
+
 }

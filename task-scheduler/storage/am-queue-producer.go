@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
 	producerModel "tskscheduler/servers/model"
 	model "tskscheduler/task-scheduler/model"
@@ -21,14 +19,12 @@ type Producer struct {
 	done    chan int
 }
 
+var connectionProducer = "task-scheduler-producer"
+
 func (producer *Producer) SetupCloseHandler() {
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-c
-		log.Printf("Ctrl+C pressed in Terminal")
-		producer.done <- 1
-		os.Exit(0)
+		<-producer.done
+		producer.ShutDown()
 	}()
 }
 
@@ -46,11 +42,11 @@ func NewProducer(done chan int, queueName string) (*Producer, error) {
 	var err error
 
 	config := amqp.Config{Properties: amqp.NewConnectionProperties()}
-	config.Properties.SetClientConnectionName("sample-Producer")
+	config.Properties.SetClientConnectionName(connectionProducer)
 	log.Printf("dialing %q", amqpURI)
 	c.conn, err = amqp.DialConfig(amqpURI, config)
 	if err != nil {
-		return nil, fmt.Errorf("Dial: %s", err)
+		return nil, fmt.Errorf("dial: %s", err)
 	}
 
 	go func() {
@@ -60,7 +56,7 @@ func NewProducer(done chan int, queueName string) (*Producer, error) {
 	log.Printf("got Connection, getting Channel")
 	c.channel, err = c.conn.Channel()
 	if err != nil {
-		return nil, fmt.Errorf("Channel: %s", err)
+		return nil, fmt.Errorf("channel: %s", err)
 	}
 
 	log.Printf("got Channel, declaring Exchange (%q)", exchange)
@@ -73,23 +69,18 @@ func NewProducer(done chan int, queueName string) (*Producer, error) {
 		false,        // noWait
 		nil,          // arguments
 	); err != nil {
-		return nil, fmt.Errorf("Exchange Declare: %s", err)
+		return nil, fmt.Errorf("exchange Declare: %s", err)
 	}
 
 	log.Printf("declared Exchange, declaring Queue %q", queueName)
-	// _, err = c.channel.QueueDeclare(
-	// 	queueName, // name of the queue
-	// 	true,      // durable
-	// 	false,     // delete when unused
-	// 	false,     // exclusive
-	// 	false,     // noWait
-	// 	nil,       // arguments
-	// )
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Queue Declare: %s", err)
-	// }
-
 	return c, nil
+}
+
+func (c *Producer) ShutDown() {
+	if err := c.conn.Close(); err != nil {
+		fmt.Printf("AMQP connection close error: %s", err)
+	}
+	fmt.Printf("AMQP producer shutdown")
 }
 
 func (c *Producer) SendTaskMessage(taskId, routingKey string) {
@@ -132,11 +123,11 @@ func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
 }
 
 func (c *Producer) SendServerJoinMessage(serverJoinData *producerModel.JoinData) {
-	fmt.Printf("send server join message \n")
+	fmt.Printf("send server join/leave message status %v \n", serverJoinData.Status)
 	key := os.Getenv("RABBITMQ_SERVER_JOIN_EXCHANGE_KEY")
 	body, err := json.Marshal(&serverJoinData)
 	if err != nil {
-		fmt.Printf("faield to marshal server join data producer %v\n", err)
+		fmt.Printf("faield to marshal server join/leave status %v data producer %v\n", serverJoinData.Status, err)
 	}
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
 	publishErr := c.channel.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
@@ -145,6 +136,6 @@ func (c *Producer) SendServerJoinMessage(serverJoinData *producerModel.JoinData)
 	})
 
 	if publishErr != nil {
-		fmt.Printf("error sendig server join message %v\n", publishErr)
+		fmt.Printf("error sendig server join/leave status %v message %v\n", serverJoinData.Status, publishErr)
 	}
 }

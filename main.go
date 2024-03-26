@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	cnfg "tskscheduler/task-scheduler/config"
 	manag "tskscheduler/task-scheduler/scheduler"
 	storage "tskscheduler/task-scheduler/storage"
@@ -16,6 +18,8 @@ func main() {
 		fmt.Printf("error load env %v\n", err)
 	}
 
+	gracefulShutdown := make(chan os.Signal, 1)
+	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
 	done := make(chan int)
 	producerQueueName := os.Getenv("RABBITMQ_QUEUE_JOB_SERVER")
 	consumer, err := storage.NewConsumer(done)
@@ -40,6 +44,7 @@ func main() {
 	}
 	taskM := manag.InitManager(consumer, producer, supa, localCache, done, cnfg.LoadConfig())
 	taskM.StartManager()
-	<-done
 
+	<-gracefulShutdown
+	done <- 1
 }

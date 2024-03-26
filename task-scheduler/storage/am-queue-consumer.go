@@ -4,30 +4,26 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Consumer struct {
-	conn     *amqp.Connection
-	channel  *amqp.Channel
-	delivery <-chan amqp.Delivery
-	tag      string
-	done     chan int
+	conn    *amqp.Connection
+	channel *amqp.Channel
+	done    chan int
 }
 
+var taskConsumerTag = "task-consumer"
+var newServerJoinTag = "server-join"
+var connectionName = "task-scheduler-consumer"
+
 func (consumer *Consumer) SetupCloseHandler() {
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-c
-		log.Printf("Ctrl+C pressed in Terminal")
+		<-consumer.done
 		if err := consumer.Shutdown(); err != nil {
 			log.Fatalf("error during shutdown: %s", err)
 		}
-		os.Exit(0)
 	}()
 }
 
@@ -35,23 +31,21 @@ func NewConsumer(done chan int) (*Consumer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
 	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
-	ctag := os.Getenv("RABBITMQ_CONSUMER_TAG")
 
 	c := &Consumer{
 		conn:    nil,
 		channel: nil,
-		tag:     ctag,
 		done:    done,
 	}
 
 	var err error
 
 	config := amqp.Config{Properties: amqp.NewConnectionProperties()}
-	config.Properties.SetClientConnectionName("sample-consumer")
+	config.Properties.SetClientConnectionName(connectionName)
 	log.Printf("dialing %q", amqpURI)
 	c.conn, err = amqp.DialConfig(amqpURI, config)
 	if err != nil {
-		return nil, fmt.Errorf("Dial: %s", err)
+		return nil, fmt.Errorf("dial: %s", err)
 	}
 
 	go func() {
@@ -61,7 +55,7 @@ func NewConsumer(done chan int) (*Consumer, error) {
 	log.Printf("got Connection, getting Channel")
 	c.channel, err = c.conn.Channel()
 	if err != nil {
-		return nil, fmt.Errorf("Channel: %s", err)
+		return nil, fmt.Errorf("channel: %s", err)
 	}
 
 	log.Printf("got Channel, declaring Exchange (%q)", exchange)
@@ -74,25 +68,25 @@ func NewConsumer(done chan int) (*Consumer, error) {
 		false,        // noWait
 		nil,          // arguments
 	); err != nil {
-		return nil, fmt.Errorf("Exchange Declare: %s", err)
+		return nil, fmt.Errorf("exchange Declare: %s", err)
 	}
 
 	return c, nil
 }
 
 func (c *Consumer) Shutdown() error {
-	// will close() the deliveries channel
-	if err := c.channel.Cancel(c.tag, true); err != nil {
-		return fmt.Errorf("Consumer cancel failed: %s", err)
+	if err := c.channel.Cancel(taskConsumerTag, true); err != nil {
+		return fmt.Errorf("task consumer cancel failed: %s", err)
 	}
-
+	if err := c.channel.Cancel(newServerJoinTag, true); err != nil {
+		return fmt.Errorf("server join consumer cancel failed: %s", err)
+	}
 	if err := c.conn.Close(); err != nil {
 		return fmt.Errorf("AMQP connection close error: %s", err)
 	}
 
-	defer log.Printf("AMQP shutdown OK")
+	fmt.Printf("AMQP consumer shutdown")
 
-	c.done <- 1
 	return nil
 }
 
@@ -107,7 +101,7 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string) error 
 		nil,       // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("Queue Declare: %s", err)
+		return fmt.Errorf("queue Declare: %s", err)
 	}
 
 	log.Printf("declared Queue (%q %d messages, %d consumers), binding to Exchange (key %q)",
@@ -120,21 +114,21 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string) error 
 		false,      // noWait
 		nil,        // arguments
 	); err != nil {
-		return fmt.Errorf("Queue Bind: %s", err)
+		return fmt.Errorf("queue Bind: %s", err)
 	}
 
-	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", c.tag)
+	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", taskConsumerTag)
 	deliveries, err := c.channel.Consume(
-		queue.Name, // name
-		c.tag,      // consumerTag,
-		false,      // autoAck
-		false,      // exclusive
-		false,      // noLocal
-		false,      // noWait
-		nil,        // arguments
+		queue.Name,      // name
+		taskConsumerTag, // consumerTag,
+		false,           // autoAck
+		false,           // exclusive
+		false,           // noLocal
+		false,           // noWait
+		nil,             // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("Queue Consume: %s", err)
+		return fmt.Errorf("queue consume: %s", err)
 	}
 	for {
 		select {
@@ -164,13 +158,13 @@ func (c *Consumer) ServerJoinHandle(serverJoin chan []byte) error {
 		return bindErr
 	}
 	deliveries, err := c.channel.Consume(
-		queue.Name,    // name
-		"server-join", // consumerTag,
-		false,         // autoAck
-		false,         // exclusive
-		false,         // noLocal
-		false,         // noWait
-		nil,           // arguments
+		queue.Name,       // name
+		newServerJoinTag, // consumerTag,
+		false,            // autoAck
+		false,            // exclusive
+		false,            // noLocal
+		false,            // noWait
+		nil,              // arguments
 	)
 	if err != nil {
 		return err
