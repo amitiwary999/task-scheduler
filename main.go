@@ -25,8 +25,6 @@ func main() {
 	consumer, err := storage.NewConsumer(done)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
-	} else {
-		consumer.SetupCloseHandler()
 	}
 	producer, err := storage.NewProducer(done, producerQueueName)
 	if err != nil {
@@ -42,5 +40,7 @@ func main() {
 	taskM.StartManager()
 
 	<-gracefulShutdown
+	consumer.Shutdown()
+	producer.ShutDown()
 	done <- 1
 }

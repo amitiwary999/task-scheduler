@@ -80,7 +80,7 @@ func (c *Producer) ShutDown() {
 	if err := c.conn.Close(); err != nil {
 		fmt.Printf("AMQP connection close error: %s", err)
 	}
-	fmt.Printf("AMQP producer shutdown")
+	fmt.Printf("AMQP producer shutdown\n")
 }
 
 func (c *Producer) SendTaskMessage(taskId, routingKey string) {

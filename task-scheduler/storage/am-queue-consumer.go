@@ -18,15 +18,6 @@ var taskConsumerTag = "task-consumer"
 var newServerJoinTag = "server-join"
 var connectionName = "task-scheduler-consumer"
 
-func (consumer *Consumer) SetupCloseHandler() {
-	go func() {
-		<-consumer.done
-		if err := consumer.Shutdown(); err != nil {
-			log.Fatalf("error during shutdown: %s", err)
-		}
-	}()
-}
-
 func NewConsumer(done chan int) (*Consumer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
@@ -85,7 +76,7 @@ func (c *Consumer) Shutdown() error {
 		return fmt.Errorf("AMQP connection close error: %s", err)
 	}
 
-	fmt.Printf("AMQP consumer shutdown")
+	fmt.Printf("AMQP consumer shutdown\n")
 
 	return nil
 }
@@ -135,7 +126,9 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string) error 
 		case <-c.done:
 			return nil
 		case d := <-deliveries:
-			data <- d.Body
+			if len(d.Body) > 0 {
+				data <- d.Body
+			}
 			d.Ack(true)
 		}
 	}
@@ -174,7 +167,9 @@ func (c *Consumer) ServerJoinHandle(serverJoin chan []byte) error {
 		case <-c.done:
 			return nil
 		case d := <-deliveries:
-			serverJoin <- d.Body
+			if len(d.Body) > 0 {
+				serverJoin <- d.Body
+			}
 			d.Ack(true)
 		}
 	}

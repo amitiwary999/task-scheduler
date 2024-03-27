@@ -24,6 +24,8 @@ func main() {
 	done := make(chan int)
 	producerQueueName := os.Getenv("RABBITMQ_QUEUE")
 	producer, err := storage.NewProducer(done, producerQueueName)
+	consumer, err := storage.NewConsumer(done)
+
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
 	} else {
@@ -50,11 +52,8 @@ func main() {
 		serverData.Status = 1
 		producer.SendServerJoinMessage(&serverData)
 
-		consumer, err := storage.NewConsumer(done)
 		if err != nil {
 			fmt.Printf("amq connection error %v\n", err)
-		} else {
-			consumer.SetupCloseHandler()
 		}
 		cordinator := task.NewCordinator(consumer, producer, supa, done, consumerKey)
 		cordinator.Start()
@@ -72,6 +71,8 @@ func main() {
 		}
 		producer.SendServerJoinMessage(&serverLeaveData)
 	}
+	producer.ShutDown()
+	consumer.Shutdown()
 	done <- 1
 
 }
