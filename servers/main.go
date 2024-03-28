@@ -28,8 +28,6 @@ func main() {
 
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
-	} else {
-		producer.SetupCloseHandler()
 	}
 	supa, error := storage.NewSupabaseClient()
 	if error != nil {
@@ -59,6 +57,7 @@ func main() {
 		cordinator.Start()
 	}
 	<-gracefulShutdown
+	close(done)
 	if len(serversData) > 0 {
 		serverId := serversData[0].ServerId
 		serverLeaveData := model.JoinData{
@@ -73,6 +72,4 @@ func main() {
 	}
 	producer.ShutDown()
 	consumer.Shutdown()
-	done <- 1
-
 }

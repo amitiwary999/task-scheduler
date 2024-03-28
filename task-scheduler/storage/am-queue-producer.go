@@ -21,13 +21,6 @@ type Producer struct {
 
 var connectionProducer = "task-scheduler-producer"
 
-func (producer *Producer) SetupCloseHandler() {
-	go func() {
-		<-producer.done
-		producer.ShutDown()
-	}()
-}
-
 func NewProducer(done chan int, queueName string) (*Producer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")

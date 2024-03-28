@@ -29,8 +29,6 @@ func main() {
 	producer, err := storage.NewProducer(done, producerQueueName)
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
-	} else {
-		producer.SetupCloseHandler()
 	}
 	supa, error := storage.NewSupabaseClient()
 	if error != nil {
@@ -40,7 +38,7 @@ func main() {
 	taskM.StartManager()
 
 	<-gracefulShutdown
+	close(done)
 	consumer.Shutdown()
 	producer.ShutDown()
-	done <- 1
 }
