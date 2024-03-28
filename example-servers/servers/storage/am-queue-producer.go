@@ -75,8 +75,8 @@ func (c *Producer) ShutDown() {
 	fmt.Printf("AMQP producer shutdown\n")
 }
 
-func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
-	producerKey := os.Getenv("RABBITMQ_EXCHANGE_KEY")
+func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.CompleteTask) {
+	producerKey := os.Getenv("RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY")
 	fmt.Printf("send complete task, action %v taskid %v\n", taskData.Meta.Action, taskData.Id)
 	body, err := json.Marshal(&taskData)
 	if err != nil {

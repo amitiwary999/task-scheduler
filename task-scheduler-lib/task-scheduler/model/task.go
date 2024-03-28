@@ -5,9 +5,14 @@ type TaskMeta struct {
 	TaskType string `json:"taskType"`
 	MaxRetry int    `json:"maxRetry"`
 	Action   string `json:"action"`
+	ServerId string `json:"serverId,omitempty"`
 }
 
 type Task struct {
+	Meta TaskMeta `json:"meta"`
+}
+
+type CompleteTask struct {
 	Id   string   `json:"id"`
 	Meta TaskMeta `json:"meta"`
 }

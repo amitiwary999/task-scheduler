@@ -11,14 +11,15 @@ import (
 )
 
 type TaskManager struct {
-	tasksWeight map[string]model.TaskWeight
-	servers     map[string]*model.Servers
-	consumer    *qm.Consumer
-	producer    *qm.Producer
-	supClient   *qm.SupabaseClient
-	receive     chan []byte
-	serverJoin  chan []byte
-	done        chan int
+	tasksWeight         map[string]model.TaskWeight
+	servers             map[string]*model.Servers
+	consumer            *qm.Consumer
+	producer            *qm.Producer
+	supClient           *qm.SupabaseClient
+	receiveTask         chan []byte
+	receiveCompleteTask chan []byte
+	serverJoin          chan []byte
+	done                chan int
 }
 
 func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
@@ -47,32 +48,37 @@ func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.Sup
 	}
 
 	return &TaskManager{
-		tasksWeight: tasksWeight,
-		servers:     servers,
-		producer:    producer,
-		consumer:    consumer,
-		supClient:   supClient,
-		receive:     make(chan []byte),
-		serverJoin:  make(chan []byte),
-		done:        done,
+		tasksWeight:         tasksWeight,
+		servers:             servers,
+		producer:            producer,
+		consumer:            consumer,
+		supClient:           supClient,
+		receiveTask:         make(chan []byte),
+		receiveCompleteTask: make(chan []byte),
+		serverJoin:          make(chan []byte),
+		done:                done,
 	}
 }
 
 func (tm *TaskManager) StartManager() {
 	key := os.Getenv("RABBITMQ_EXCHANGE_KEY")
 	queueName := os.Getenv("RABBITMQ_QUEUE")
-	go tm.consumer.Handle(tm.receive, queueName, key)
-	go tm.receiveTask()
-	go tm.consumer.ServerJoinHandle(tm.serverJoin)
+	completeTaskKey := os.Getenv("RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY")
+	taskCompleteQueue := os.Getenv("RABBITMQ_TASK_COMPLETE_QUEUE")
+	go tm.consumer.Handle(tm.receiveTask, queueName, key, tm.consumer.TaskConsumerTag)
+	go tm.receiveNewTask()
+	go tm.consumer.Handle(tm.receiveCompleteTask, taskCompleteQueue, completeTaskKey, tm.consumer.CompleteTaskConsumerTag)
+	go tm.receiveCompleteTaskFunc()
+	go tm.consumer.ServerJoinHandle(tm.serverJoin, tm.consumer.ServerJoinConsumerTag)
 	go tm.receiveServerJoinMessage()
 }
 
-func (tm *TaskManager) receiveTask() {
+func (tm *TaskManager) receiveNewTask() {
 	for {
 		select {
 		case <-tm.done:
 			return
-		case taskData := <-tm.receive:
+		case taskData := <-tm.receiveTask:
 			var task model.Task
 			err := json.Unmarshal(taskData, &task)
 			if err != nil {
@@ -80,7 +86,24 @@ func (tm *TaskManager) receiveTask() {
 			} else {
 				if task.Meta.Action == "ADD_TASK" {
 					go tm.assignTask(&task)
-				} else if task.Meta.Action == "COMPLETE_TASK" {
+				}
+			}
+		}
+	}
+}
+
+func (tm *TaskManager) receiveCompleteTaskFunc() {
+	for {
+		select {
+		case <-tm.done:
+			return
+		case taskData := <-tm.receiveCompleteTask:
+			var task model.CompleteTask
+			err := json.Unmarshal(taskData, &task)
+			if err != nil {
+				fmt.Printf("json unmarshal error in receive task %v\n", err)
+			} else {
+				if task.Meta.Action == "COMPLETE_TASK" {
 					go tm.completeTask(task)
 				}
 			}
@@ -144,8 +167,8 @@ func (tm *TaskManager) assignTask(task *model.Task) {
 	}
 }
 
-func (tm *TaskManager) completeTask(task model.Task) {
-	serverId := task.Meta.TaskId
+func (tm *TaskManager) completeTask(task model.CompleteTask) {
+	serverId := task.Meta.ServerId
 	taskType := task.Meta.TaskType
 	server := tm.servers[serverId]
 	taskWeight, ok := tm.tasksWeight[taskType]

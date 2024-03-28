@@ -49,7 +49,7 @@ func (c *cordinator) receiveScheduledTask() {
 			if err != nil {
 				fmt.Printf("error in decoding receive task %v\n", err)
 			} else {
-				var taskData []model.Task
+				var taskData []model.CompleteTask
 				taskDataByte, _, err := c.supClient.GetTaskById(receiveTask.TaskId)
 				if err != nil {
 					fmt.Printf("error in getting task data %v\n", err)
@@ -69,14 +69,14 @@ func (c *cordinator) receiveScheduledTask() {
 	}
 }
 
-func (c *cordinator) doTask(taskData model.Task) {
+func (c *cordinator) doTask(taskData model.CompleteTask) {
 	taskType := taskData.Meta.TaskType
 	if taskType == util.TASK_TYPE_1 {
 		FirstTask()
 	} else if taskType == util.TASK_TYPE_2 {
 		SecondTask()
 	}
-	taskData.Meta.TaskId = c.serverId
+	taskData.Meta.ServerId = c.serverId
 	taskData.Meta.Action = "COMPLETE_TASK"
 	c.producer.SendTaskCompleteMessage(&taskData)
 }

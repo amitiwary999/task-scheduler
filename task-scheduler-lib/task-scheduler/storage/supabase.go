@@ -39,7 +39,7 @@ func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	jobDetailTable := os.Getenv("SUPABASE_JOBDETAIL")
 	url := fmt.Sprintf("%v%v", s.baseUrl, jobDetailTable)
 	id := uuid.New().String()
-	row := model.Task{
+	row := model.CompleteTask{
 		Id:   id,
 		Meta: *meta,
 	}

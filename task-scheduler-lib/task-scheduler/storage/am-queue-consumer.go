@@ -9,12 +9,16 @@ import (
 )
 
 type Consumer struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
-	done    chan int
+	conn                    *amqp.Connection
+	channel                 *amqp.Channel
+	done                    chan int
+	TaskConsumerTag         string
+	CompleteTaskConsumerTag string
+	ServerJoinConsumerTag   string
 }
 
 var taskConsumerTag = "task-consumer"
+var completeTaskConsumerTag = "complete-task-consumer-tag"
 var newServerJoinTag = "server-join"
 var connectionName = "task-scheduler-consumer"
 
@@ -24,9 +28,12 @@ func NewConsumer(done chan int) (*Consumer, error) {
 	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
 
 	c := &Consumer{
-		conn:    nil,
-		channel: nil,
-		done:    done,
+		conn:                    nil,
+		channel:                 nil,
+		done:                    done,
+		TaskConsumerTag:         taskConsumerTag,
+		CompleteTaskConsumerTag: completeTaskConsumerTag,
+		ServerJoinConsumerTag:   newServerJoinTag,
 	}
 
 	var err error
@@ -81,7 +88,7 @@ func (c *Consumer) Shutdown() error {
 	return nil
 }
 
-func (c *Consumer) Handle(data chan []byte, queueName string, key string) error {
+func (c *Consumer) Handle(data chan []byte, queueName string, key string, consumerTag string) error {
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
 	queue, err := c.channel.QueueDeclare(
 		queueName, // name of the queue
@@ -108,15 +115,15 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string) error 
 		return fmt.Errorf("queue Bind: %s", err)
 	}
 
-	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", taskConsumerTag)
+	log.Printf("Queue bound to Exchange, starting Consume (consumer tag %q)", consumerTag)
 	deliveries, err := c.channel.Consume(
-		queue.Name,      // name
-		taskConsumerTag, // consumerTag,
-		false,           // autoAck
-		false,           // exclusive
-		false,           // noLocal
-		false,           // noWait
-		nil,             // arguments
+		queue.Name,  // name
+		consumerTag, // consumerTag,
+		false,       // autoAck
+		false,       // exclusive
+		false,       // noLocal
+		false,       // noWait
+		nil,         // arguments
 	)
 	if err != nil {
 		return fmt.Errorf("queue consume: %s", err)
@@ -134,7 +141,7 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string) error 
 	}
 }
 
-func (c *Consumer) ServerJoinHandle(serverJoin chan []byte) error {
+func (c *Consumer) ServerJoinHandle(serverJoin chan []byte, consumerTag string) error {
 	serverJoinQueue := os.Getenv("SERVER_JOIN_RABBITMQ_QUEUE")
 	serverJoinKey := os.Getenv("RABBITMQ_SERVER_JOIN_EXCHANGE_KEY")
 	exchange := os.Getenv("RABBITMQ_EXCHANGE")
@@ -151,13 +158,13 @@ func (c *Consumer) ServerJoinHandle(serverJoin chan []byte) error {
 		return bindErr
 	}
 	deliveries, err := c.channel.Consume(
-		queue.Name,       // name
-		newServerJoinTag, // consumerTag,
-		false,            // autoAck
-		false,            // exclusive
-		false,            // noLocal
-		false,            // noWait
-		nil,              // arguments
+		queue.Name,  // name
+		consumerTag, // consumerTag,
+		false,       // autoAck
+		false,       // exclusive
+		false,       // noLocal
+		false,       // noWait
+		nil,         // arguments
 	)
 	if err != nil {
 		return err

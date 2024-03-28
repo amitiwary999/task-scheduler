@@ -9,9 +9,10 @@ type TaskMeta struct {
 	TaskId   string `json:"taskId"`
 	TaskType string `json:"taskType"`
 	Action   string `json:"action"`
+	ServerId string `json:"serverId,omitempty"`
 }
 
-type Task struct {
+type CompleteTask struct {
 	Id   string   `json:"id"`
 	Meta TaskMeta `json:"meta"`
 }
