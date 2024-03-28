@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 
-	producerModel "tskscheduler/servers/model"
 	model "tskscheduler/task-scheduler/model"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -97,7 +96,7 @@ func (c *Producer) SendTaskMessage(taskId, routingKey string) {
 	}
 }
 
-func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
+func (c *Producer) SendTaskCompleteMessage(taskData *model.Task) {
 	producerKey := os.Getenv("RABBITMQ_EXCHANGE_KEY")
 	fmt.Printf("send complete task, action %v taskid %v\n", taskData.Meta.Action, taskData.Id)
 	body, err := json.Marshal(&taskData)
@@ -115,7 +114,7 @@ func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
 	}
 }
 
-func (c *Producer) SendServerJoinMessage(serverJoinData *producerModel.JoinData) {
+func (c *Producer) SendServerJoinMessage(serverJoinData *model.JoinData) {
 	fmt.Printf("send server join/leave message status %v \n", serverJoinData.Status)
 	key := os.Getenv("RABBITMQ_SERVER_JOIN_EXCHANGE_KEY")
 	body, err := json.Marshal(&serverJoinData)
