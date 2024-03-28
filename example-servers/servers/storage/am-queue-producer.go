@@ -75,27 +75,6 @@ func (c *Producer) ShutDown() {
 	fmt.Printf("AMQP producer shutdown\n")
 }
 
-func (c *Producer) SendTaskMessage(taskId, routingKey string) {
-	fmt.Printf("send the task %v %v \n", routingKey, taskId)
-	bodyModel := &producerModel.TaskMessage{
-		TaskId:   taskId,
-		ServerId: routingKey,
-	}
-	body, err := json.Marshal(bodyModel)
-	if err != nil {
-		fmt.Printf("task maessage body parse error %v\n", err)
-	}
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
-	publishErr := c.channel.PublishWithContext(context.Background(), exchange, routingKey, false, false, amqp.Publishing{
-		ContentType: "text/plain",
-		Body:        body,
-	})
-
-	if publishErr != nil {
-		fmt.Printf("error sendig task to server %v\n", err)
-	}
-}
-
 func (c *Producer) SendTaskCompleteMessage(taskData *producerModel.Task) {
 	producerKey := os.Getenv("RABBITMQ_EXCHANGE_KEY")
 	fmt.Printf("send complete task, action %v taskid %v\n", taskData.Meta.Action, taskData.Id)

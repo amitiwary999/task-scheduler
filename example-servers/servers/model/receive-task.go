@@ -5,11 +5,6 @@ type ReceiveTask struct {
 	TaskId   string `json:"task"`
 }
 
-type CompleteTask struct {
-	TaskId   string `json:"taskId"`
-	ServerId string `json:"serverId"`
-}
-
 type TaskMeta struct {
 	TaskId   string `json:"taskId"`
 	TaskType string `json:"taskType"`
@@ -28,9 +23,4 @@ type JoinData struct {
 
 type UpdateServerStatus struct {
 	Status int `json:"status"`
-}
-
-type TaskMessage struct {
-	ServerId string `json:"server"`
-	TaskId   string `json:"task"`
 }
