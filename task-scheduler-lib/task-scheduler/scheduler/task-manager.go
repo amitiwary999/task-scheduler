@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	cnfg "tskscheduler/task-scheduler/config"
 	model "tskscheduler/task-scheduler/model"
 	qm "tskscheduler/task-scheduler/storage"
@@ -20,6 +21,7 @@ type TaskManager struct {
 	receiveCompleteTask chan []byte
 	serverJoin          chan []byte
 	done                chan int
+	lock                sync.Mutex
 }
 
 func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
@@ -122,6 +124,7 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 			if err != nil {
 				fmt.Printf("json unmarshal error in server join %v\n", err)
 			} else {
+				tm.lock.Lock()
 				fmt.Printf("receive server join message %v server %v\n", join.Status, join.ServerId)
 				if join.Status == 1 {
 					server := model.Servers{
@@ -138,6 +141,7 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 						}
 					}
 				}
+				tm.lock.Unlock()
 			}
 		}
 	}
