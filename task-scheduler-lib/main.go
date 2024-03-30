@@ -40,5 +40,5 @@ func main() {
 	<-gracefulShutdown
 	close(done)
 	consumer.Shutdown()
-	producer.ShutDown()
+	producer.Shutdown()
 }

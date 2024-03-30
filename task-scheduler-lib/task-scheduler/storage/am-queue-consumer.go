@@ -5,21 +5,17 @@ import (
 	"log"
 	"os"
 
+	util "tskscheduler/task-scheduler/util"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Consumer struct {
-	conn                    *amqp.Connection
-	channel                 *amqp.Channel
-	done                    chan int
-	TaskConsumerTag         string
-	CompleteTaskConsumerTag string
-	ServerJoinConsumerTag   string
+	conn    *amqp.Connection
+	channel *amqp.Channel
+	done    chan int
 }
 
-var taskConsumerTag = "task-consumer"
-var completeTaskConsumerTag = "complete-task-consumer-tag"
-var newServerJoinTag = "server-join"
 var connectionName = "task-scheduler-consumer"
 
 func NewConsumer(done chan int) (*Consumer, error) {
@@ -28,12 +24,9 @@ func NewConsumer(done chan int) (*Consumer, error) {
 	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
 
 	c := &Consumer{
-		conn:                    nil,
-		channel:                 nil,
-		done:                    done,
-		TaskConsumerTag:         taskConsumerTag,
-		CompleteTaskConsumerTag: completeTaskConsumerTag,
-		ServerJoinConsumerTag:   newServerJoinTag,
+		conn:    nil,
+		channel: nil,
+		done:    done,
 	}
 
 	var err error
@@ -72,20 +65,17 @@ func NewConsumer(done chan int) (*Consumer, error) {
 	return c, nil
 }
 
-func (c *Consumer) Shutdown() error {
-	if err := c.channel.Cancel(taskConsumerTag, true); err != nil {
-		return fmt.Errorf("task consumer cancel failed: %s", err)
+func (c *Consumer) Shutdown() {
+	if err := c.channel.Cancel(util.TaskConsumerTag, true); err != nil {
+		fmt.Printf("task consumer cancel failed: %s", err)
 	}
-	if err := c.channel.Cancel(newServerJoinTag, true); err != nil {
-		return fmt.Errorf("server join consumer cancel failed: %s", err)
+	if err := c.channel.Cancel(util.NewServerJoinTag, true); err != nil {
+		fmt.Printf("server join consumer cancel failed: %s", err)
 	}
 	if err := c.conn.Close(); err != nil {
-		return fmt.Errorf("AMQP connection close error: %s", err)
+		fmt.Printf("AMQP connection close error: %s", err)
 	}
-
 	fmt.Printf("AMQP consumer shutdown\n")
-
-	return nil
 }
 
 func (c *Consumer) Handle(data chan []byte, queueName string, key string, consumerTag string) error {

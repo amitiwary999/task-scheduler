@@ -68,7 +68,7 @@ func NewProducer(done chan int, queueName string) (*Producer, error) {
 	return c, nil
 }
 
-func (c *Producer) ShutDown() {
+func (c *Producer) Shutdown() {
 	if err := c.conn.Close(); err != nil {
 		fmt.Printf("AMQP connection close error: %s", err)
 	}

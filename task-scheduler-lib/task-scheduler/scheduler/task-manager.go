@@ -8,15 +8,15 @@ import (
 	"sync"
 	cnfg "tskscheduler/task-scheduler/config"
 	model "tskscheduler/task-scheduler/model"
-	qm "tskscheduler/task-scheduler/storage"
+	util "tskscheduler/task-scheduler/util"
 )
 
 type TaskManager struct {
 	tasksWeight         map[string]model.TaskWeight
 	servers             map[string]*model.Servers
-	consumer            *qm.Consumer
-	producer            *qm.Producer
-	supClient           *qm.SupabaseClient
+	consumer            util.AMQPConsumer
+	producer            util.AMQPProducer
+	supClient           util.SupabaseClient
 	receiveTask         chan []byte
 	receiveCompleteTask chan []byte
 	serverJoin          chan []byte
@@ -24,7 +24,7 @@ type TaskManager struct {
 	lock                sync.Mutex
 }
 
-func InitManager(consumer *qm.Consumer, producer *qm.Producer, supClient *qm.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
+func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClient util.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
 
@@ -67,11 +67,11 @@ func (tm *TaskManager) StartManager() {
 	queueName := os.Getenv("RABBITMQ_QUEUE")
 	completeTaskKey := os.Getenv("RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY")
 	taskCompleteQueue := os.Getenv("RABBITMQ_TASK_COMPLETE_QUEUE")
-	go tm.consumer.Handle(tm.receiveTask, queueName, key, tm.consumer.TaskConsumerTag)
+	go tm.consumer.Handle(tm.receiveTask, queueName, key, util.TaskConsumerTag)
 	go tm.receiveNewTask()
-	go tm.consumer.Handle(tm.receiveCompleteTask, taskCompleteQueue, completeTaskKey, tm.consumer.CompleteTaskConsumerTag)
+	go tm.consumer.Handle(tm.receiveCompleteTask, taskCompleteQueue, completeTaskKey, util.CompleteTaskConsumerTag)
 	go tm.receiveCompleteTaskFunc()
-	go tm.consumer.ServerJoinHandle(tm.serverJoin, tm.consumer.ServerJoinConsumerTag)
+	go tm.consumer.ServerJoinHandle(tm.serverJoin, util.NewServerJoinTag)
 	go tm.receiveServerJoinMessage()
 }
 
