@@ -17,8 +17,8 @@ type TaskManager struct {
 	consumer            util.AMQPConsumer
 	producer            util.AMQPProducer
 	supClient           util.SupabaseClient
-	receiveTask         chan []byte
-	receiveCompleteTask chan []byte
+	ReceiveTask         chan []byte
+	ReceiveCompleteTask chan []byte
 	serverJoin          chan []byte
 	done                chan int
 	lock                sync.Mutex
@@ -55,8 +55,8 @@ func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClie
 		producer:            producer,
 		consumer:            consumer,
 		supClient:           supClient,
-		receiveTask:         make(chan []byte),
-		receiveCompleteTask: make(chan []byte),
+		ReceiveTask:         make(chan []byte),
+		ReceiveCompleteTask: make(chan []byte),
 		serverJoin:          make(chan []byte),
 		done:                done,
 	}
@@ -67,9 +67,9 @@ func (tm *TaskManager) StartManager() {
 	queueName := os.Getenv("RABBITMQ_QUEUE")
 	completeTaskKey := os.Getenv("RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY")
 	taskCompleteQueue := os.Getenv("RABBITMQ_TASK_COMPLETE_QUEUE")
-	go tm.consumer.Handle(tm.receiveTask, queueName, key, util.TaskConsumerTag)
+	go tm.consumer.Handle(tm.ReceiveTask, queueName, key, util.TaskConsumerTag)
 	go tm.receiveNewTask()
-	go tm.consumer.Handle(tm.receiveCompleteTask, taskCompleteQueue, completeTaskKey, util.CompleteTaskConsumerTag)
+	go tm.consumer.Handle(tm.ReceiveCompleteTask, taskCompleteQueue, completeTaskKey, util.CompleteTaskConsumerTag)
 	go tm.receiveCompleteTaskFunc()
 	go tm.consumer.ServerJoinHandle(tm.serverJoin, util.NewServerJoinTag)
 	go tm.receiveServerJoinMessage()
@@ -80,7 +80,7 @@ func (tm *TaskManager) receiveNewTask() {
 		select {
 		case <-tm.done:
 			return
-		case taskData := <-tm.receiveTask:
+		case taskData := <-tm.ReceiveTask:
 			var task model.Task
 			err := json.Unmarshal(taskData, &task)
 			if err != nil {
@@ -99,7 +99,7 @@ func (tm *TaskManager) receiveCompleteTaskFunc() {
 		select {
 		case <-tm.done:
 			return
-		case taskData := <-tm.receiveCompleteTask:
+		case taskData := <-tm.ReceiveCompleteTask:
 			var task model.CompleteTask
 			err := json.Unmarshal(taskData, &task)
 			if err != nil {
