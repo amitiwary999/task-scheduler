@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 	cnfg "tskscheduler/task-scheduler/config"
 	"tskscheduler/task-scheduler/model"
 	manag "tskscheduler/task-scheduler/scheduler"
@@ -42,12 +43,12 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string, consum
 }
 
 func (c *Consumer) ServerJoinHandle(serverJoin chan []byte, consumerTag string) error {
-	fmt.Printf("receive req for server join%v\n", consumerTag)
+	fmt.Printf("receive req for server join%v \n", consumerTag)
 	return nil
 }
 
 func (p *Producer) SendTaskMessage(taskId, routingKey string) {
-	// time.Sleep(time.Duration(time.Millisecond * 60))
+	time.Sleep(time.Duration(time.Millisecond * 20))
 	var meta = model.TaskMeta{
 		TaskId:   "4nght45",
 		TaskType: "task1",
@@ -70,11 +71,11 @@ func (p *Producer) Shutdown() {
 
 func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	id := uuid.New().String()
-	// time.Sleep(time.Duration(time.Millisecond) * 100)
+	time.Sleep(time.Duration(time.Millisecond) * 50)
 	return id, nil
 }
 func (s *SupabaseClient) UpdateTaskComplete(id string) error {
-	// time.Sleep(time.Duration(time.Millisecond) * 100)
+	time.Sleep(time.Duration(time.Millisecond) * 50)
 	fmt.Printf("update task complete for %v\n", id)
 	return nil
 }
@@ -88,7 +89,6 @@ func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 
 func BenchmarkTaskScheduler(b *testing.B) {
 	done := make(chan int)
-	data := make(chan []byte)
 	taskM = manag.InitManager(&cons, &prod, &supa, done, cnfg.LoadConfig())
 	taskM.StartManager()
 	for i := 0; i < b.N; i++ {
@@ -105,7 +105,7 @@ func BenchmarkTaskScheduler(b *testing.B) {
 			if err != nil {
 
 			} else {
-				data <- bdata
+				taskM.ReceiveTask <- bdata
 			}
 		} else {
 			var meta = model.TaskMeta{
