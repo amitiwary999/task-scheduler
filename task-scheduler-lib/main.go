@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	cnfg "tskscheduler/task-scheduler/config"
 	manag "tskscheduler/task-scheduler/scheduler"
 	storage "tskscheduler/task-scheduler/storage"
 
@@ -34,7 +33,7 @@ func main() {
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	taskM := manag.InitManager(consumer, producer, supa, done, cnfg.LoadConfig())
+	taskM := manag.InitManager(consumer, producer, supa, done)
 	taskM.StartManager()
 
 	<-gracefulShutdown

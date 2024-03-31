@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	cnfg "tskscheduler/task-scheduler/config"
 	model "tskscheduler/task-scheduler/model"
 	util "tskscheduler/task-scheduler/util"
 )
@@ -24,11 +23,14 @@ type TaskManager struct {
 	lock                sync.Mutex
 }
 
-func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClient util.SupabaseClient, done chan int, config *cnfg.Config) *TaskManager {
+func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClient util.SupabaseClient, done chan int) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
 
-	for _, taskWeight := range config.TaskWeight {
+	var taskWeightConfig []model.TaskWeight
+	taskConfigByte, _ := supClient.GetTaskConfig()
+	json.Unmarshal(taskConfigByte, &taskWeightConfig)
+	for _, taskWeight := range taskWeightConfig {
 		tasksWeight[taskWeight.Type] = taskWeight
 	}
 
@@ -39,7 +41,6 @@ func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClie
 		fmt.Printf("error in get all used servers %v\n", serversErr)
 	} else {
 		json.Unmarshal(serversByte, &serversJoinData)
-
 		for _, serverJonData := range serversJoinData {
 			server := model.Servers{
 				Id:   serverJonData.ServerId,

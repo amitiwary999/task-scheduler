@@ -19,4 +19,5 @@ type SupabaseClient interface {
 	SaveTask(meta *model.TaskMeta) (string, error)
 	UpdateTaskComplete(id string) error
 	GetAllUsedServer() ([]byte, error)
+	GetTaskConfig() ([]byte, error)
 }
