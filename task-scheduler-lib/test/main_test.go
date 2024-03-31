@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-	cnfg "tskscheduler/task-scheduler/config"
 	"tskscheduler/task-scheduler/model"
 	manag "tskscheduler/task-scheduler/scheduler"
 
@@ -33,17 +32,11 @@ func (c *Consumer) Shutdown() {
 
 var taskM *manag.TaskManager
 
-var joinData1 = model.JoinData{
-	ServerId: "server1",
-	Status:   0,
-}
-
 func (c *Consumer) Handle(data chan []byte, queueName string, key string, consumerTag string) error {
 	return nil
 }
 
 func (c *Consumer) ServerJoinHandle(serverJoin chan []byte, consumerTag string) error {
-	fmt.Printf("receive req for server join%v \n", consumerTag)
 	return nil
 }
 
@@ -53,6 +46,7 @@ func (p *Producer) SendTaskMessage(taskId, routingKey string) {
 		TaskId:   "4nght45",
 		TaskType: "task1",
 		Action:   "COMPLETE_TASK",
+		ServerId: "server1",
 	}
 	taskData := model.CompleteTask{
 		Id:   taskId,
@@ -69,6 +63,22 @@ func (p *Producer) Shutdown() {
 
 }
 
+func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
+	var task1 = model.TaskWeight{
+		Type:   "task1",
+		Weight: 9,
+	}
+
+	var task2 = model.TaskWeight{
+		Type:   "task2",
+		Weight: 5,
+	}
+
+	var taskWeightConfig []model.TaskWeight
+	taskWeightConfig = append(taskWeightConfig, task1)
+	taskWeightConfig = append(taskWeightConfig, task2)
+	return json.Marshal(taskWeightConfig)
+}
 func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	id := uuid.New().String()
 	time.Sleep(time.Duration(time.Millisecond) * 50)
@@ -76,11 +86,21 @@ func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
 }
 func (s *SupabaseClient) UpdateTaskComplete(id string) error {
 	time.Sleep(time.Duration(time.Millisecond) * 50)
-	fmt.Printf("update task complete for %v\n", id)
 	return nil
 }
 func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
-	mar, err := json.Marshal(joinData1)
+	var joinData1 = model.JoinData{
+		ServerId: "server1",
+		Status:   0,
+	}
+	var joinData2 = model.JoinData{
+		ServerId: "server2",
+		Status:   0,
+	}
+	var serverConfig []model.JoinData
+	serverConfig = append(serverConfig, joinData1)
+	serverConfig = append(serverConfig, joinData2)
+	mar, err := json.Marshal(serverConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +109,7 @@ func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 
 func BenchmarkTaskScheduler(b *testing.B) {
 	done := make(chan int)
-	taskM = manag.InitManager(&cons, &prod, &supa, done, cnfg.LoadConfig())
+	taskM = manag.InitManager(&cons, &prod, &supa, done)
 	taskM.StartManager()
 	for i := 0; i < b.N; i++ {
 		if i%3 == 0 {
