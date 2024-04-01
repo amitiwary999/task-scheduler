@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 	"tskscheduler/task-scheduler/model"
+	util "tskscheduler/task-scheduler/util"
 
 	"github.com/google/uuid"
 )
@@ -31,11 +32,11 @@ func NewSupabaseClient() (*SupabaseClient, error) {
 	}
 	return &SupabaseClient{
 		httpClinet: client,
-		baseUrl:    os.Getenv("SUPABASE_JOBDETAIL_TABLE_URL"),
+		baseUrl:    util.SUPABASE_JOBDETAIL_TABLE_URL,
 	}, nil
 }
 func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
-	jobConfigTable := os.Getenv("SUPABASE_JOBCONFIG")
+	jobConfigTable := util.SUPABASE_JOBCONFIG
 	url := fmt.Sprintf("%v%v", s.baseUrl, jobConfigTable)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
@@ -64,7 +65,7 @@ func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
 }
 
 func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
-	jobDetailTable := os.Getenv("SUPABASE_JOBDETAIL")
+	jobDetailTable := util.SUPABASE_JOBDETAIL
 	url := fmt.Sprintf("%v%v", s.baseUrl, jobDetailTable)
 	id := uuid.New().String()
 	row := model.CompleteTask{
@@ -100,7 +101,7 @@ func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
 }
 
 func (s *SupabaseClient) UpdateTaskComplete(id string) error {
-	jobDetailTable := os.Getenv("SUPABASE_JOBDETAIL")
+	jobDetailTable := util.SUPABASE_JOBDETAIL
 	updateS := model.TaskStatus{
 		Status: "completed",
 	}
@@ -136,7 +137,7 @@ func (s *SupabaseClient) UpdateTaskComplete(id string) error {
 }
 
 func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
-	jobServersTable := os.Getenv("SUPABASE_JOBSERVERS")
+	jobServersTable := util.SUPABASE_JOBSERVERS
 	url := fmt.Sprintf("%v%v?status=eq.1&select=serverId,status", s.baseUrl, jobServersTable)
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {

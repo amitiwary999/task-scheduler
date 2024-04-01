@@ -8,6 +8,7 @@ import (
 	"os"
 
 	model "tskscheduler/task-scheduler/model"
+	util "tskscheduler/task-scheduler/util"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -22,8 +23,8 @@ var connectionProducer = "task-scheduler-producer"
 
 func NewProducer(done chan int, queueName string) (*Producer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
-	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
+	exchange := util.RABBITMQ_EXCHANGE
+	exchangeType := util.RABBITMQ_EXCHANGE_TYPE
 
 	c := &Producer{
 		conn:    nil,
@@ -85,7 +86,7 @@ func (c *Producer) SendTaskMessage(taskId, routingKey string) {
 	if err != nil {
 		fmt.Printf("task maessage body parse error %v\n", err)
 	}
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	exchange := util.RABBITMQ_EXCHANGE
 	publishErr := c.channel.PublishWithContext(context.Background(), exchange, routingKey, false, false, amqp.Publishing{
 		ContentType: "text/plain",
 		Body:        body,

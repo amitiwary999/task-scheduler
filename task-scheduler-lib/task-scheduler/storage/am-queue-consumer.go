@@ -20,8 +20,8 @@ var connectionName = "task-scheduler-consumer"
 
 func NewConsumer(done chan int) (*Consumer, error) {
 	amqpURI := os.Getenv("RABBITMQ_URL")
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
-	exchangeType := os.Getenv("RABBITMQ_EXCHANGE_TYPE")
+	exchange := util.RABBITMQ_EXCHANGE
+	exchangeType := util.RABBITMQ_EXCHANGE_TYPE
 
 	c := &Consumer{
 		conn:    nil,
@@ -79,7 +79,7 @@ func (c *Consumer) Shutdown() {
 }
 
 func (c *Consumer) Handle(data chan []byte, queueName string, key string, consumerTag string) error {
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	exchange := util.RABBITMQ_EXCHANGE
 	queue, err := c.channel.QueueDeclare(
 		queueName, // name of the queue
 		true,      // durable
@@ -132,9 +132,9 @@ func (c *Consumer) Handle(data chan []byte, queueName string, key string, consum
 }
 
 func (c *Consumer) ServerJoinHandle(serverJoin chan []byte, consumerTag string) error {
-	serverJoinQueue := os.Getenv("SERVER_JOIN_RABBITMQ_QUEUE")
-	serverJoinKey := os.Getenv("RABBITMQ_SERVER_JOIN_EXCHANGE_KEY")
-	exchange := os.Getenv("RABBITMQ_EXCHANGE")
+	serverJoinQueue := util.SERVER_JOIN_RABBITMQ_QUEUE
+	serverJoinKey := util.RABBITMQ_SERVER_JOIN_EXCHANGE_KEY
+	exchange := util.RABBITMQ_EXCHANGE
 
 	queue, err := c.channel.QueueDeclare(serverJoinQueue, true, false, false, false, nil)
 	if err != nil {

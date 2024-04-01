@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	model "tskscheduler/task-scheduler/model"
 	util "tskscheduler/task-scheduler/util"
@@ -64,10 +63,10 @@ func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClie
 }
 
 func (tm *TaskManager) StartManager() {
-	key := os.Getenv("RABBITMQ_EXCHANGE_KEY")
-	queueName := os.Getenv("RABBITMQ_QUEUE")
-	completeTaskKey := os.Getenv("RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY")
-	taskCompleteQueue := os.Getenv("RABBITMQ_TASK_COMPLETE_QUEUE")
+	key := util.RABBITMQ_EXCHANGE_KEY
+	queueName := util.RABBITMQ_TASK_QUEUE
+	completeTaskKey := util.RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY
+	taskCompleteQueue := util.RABBITMQ_TASK_COMPLETE_QUEUE
 	go tm.consumer.Handle(tm.ReceiveTask, queueName, key, util.TaskConsumerTag)
 	go tm.receiveNewTask()
 	go tm.consumer.Handle(tm.ReceiveCompleteTask, taskCompleteQueue, completeTaskKey, util.CompleteTaskConsumerTag)
