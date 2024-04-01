@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"time"
 	"tskscheduler/task-scheduler/model"
 	util "tskscheduler/task-scheduler/util"
@@ -17,11 +16,13 @@ import (
 )
 
 type SupabaseClient struct {
-	httpClinet *http.Client
-	baseUrl    string
+	httpClinet        *http.Client
+	baseUrl           string
+	supabaseAuth      string
+	supabaseKeyString string
 }
 
-func NewSupabaseClient() (*SupabaseClient, error) {
+func NewSupabaseClient(supabaseAuth, supabaseKeyString string) (*SupabaseClient, error) {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 100
 	t.MaxConnsPerHost = 100
@@ -31,8 +32,10 @@ func NewSupabaseClient() (*SupabaseClient, error) {
 		Timeout:   60 * time.Second,
 	}
 	return &SupabaseClient{
-		httpClinet: client,
-		baseUrl:    util.SUPABASE_JOBDETAIL_TABLE_URL,
+		httpClinet:        client,
+		baseUrl:           util.SUPABASE_JOBDETAIL_TABLE_URL,
+		supabaseAuth:      supabaseAuth,
+		supabaseKeyString: supabaseKeyString,
 	}, nil
 }
 func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
@@ -43,9 +46,9 @@ func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
 		fmt.Printf("failed to create get task by id req %v\n", reqErr)
 		return nil, reqErr
 	}
-	authToken := fmt.Sprintf("Bearer %v", os.Getenv("SUPABASE_AUTH"))
+	authToken := fmt.Sprintf("Bearer %v", s.supabaseAuth)
 	req.Header.Set("Authorization", authToken)
-	req.Header.Set("apiKey", os.Getenv("SUPABASE_KEY"))
+	req.Header.Set("apiKey", s.supabaseKeyString)
 	resp, respErr := s.httpClinet.Do(req)
 	if respErr != nil {
 		return nil, respErr
@@ -56,7 +59,7 @@ func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
 		return nil, bodyErr
 	}
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
-		log.Printf("successfully fetch all used server \n")
+		log.Printf("successfully fetch task config \n")
 		return body, nil
 	} else {
 		log.Printf("error in fetch with status %v\n", resp.StatusCode)
@@ -80,9 +83,9 @@ func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	if reqErr != nil {
 		return "", reqErr
 	}
-	authToken := fmt.Sprintf("Bearer %v", os.Getenv("SUPABASE_AUTH"))
+	authToken := fmt.Sprintf("Bearer %v", s.supabaseAuth)
 	req.Header.Set("Authorization", authToken)
-	req.Header.Set("apiKey", os.Getenv("SUPABASE_KEY"))
+	req.Header.Set("apiKey", s.supabaseKeyString)
 	resp, respErr := s.httpClinet.Do(req)
 	if respErr != nil {
 		return "", respErr
@@ -115,9 +118,9 @@ func (s *SupabaseClient) UpdateTaskComplete(id string) error {
 	if reqErr != nil {
 		fmt.Printf("req err creation err %v\n", reqErr)
 	}
-	authToken := fmt.Sprintf("Bearer %v", os.Getenv("SUPABASE_AUTH"))
+	authToken := fmt.Sprintf("Bearer %v", s.supabaseAuth)
 	req.Header.Set("Authorization", authToken)
-	req.Header.Set("apiKey", os.Getenv("SUPABASE_KEY"))
+	req.Header.Set("apiKey", s.supabaseKeyString)
 	resp, respErr := s.httpClinet.Do(req)
 	if respErr != nil {
 		return respErr
@@ -144,9 +147,9 @@ func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 		fmt.Printf("failed to create get task by id req %v\n", reqErr)
 		return nil, reqErr
 	}
-	authToken := fmt.Sprintf("Bearer %v", os.Getenv("SUPABASE_AUTH"))
+	authToken := fmt.Sprintf("Bearer %v", s.supabaseAuth)
 	req.Header.Set("Authorization", authToken)
-	req.Header.Set("apiKey", os.Getenv("SUPABASE_KEY"))
+	req.Header.Set("apiKey", s.supabaseKeyString)
 	resp, respErr := s.httpClinet.Do(req)
 	if respErr != nil {
 		return nil, respErr

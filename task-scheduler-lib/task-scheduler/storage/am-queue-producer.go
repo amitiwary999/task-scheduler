@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	model "tskscheduler/task-scheduler/model"
 	util "tskscheduler/task-scheduler/util"
@@ -21,8 +20,8 @@ type Producer struct {
 
 var connectionProducer = "task-scheduler-producer"
 
-func NewProducer(done chan int, queueName string) (*Producer, error) {
-	amqpURI := os.Getenv("RABBITMQ_URL")
+func NewProducer(done chan int, queueName string, rabbitmqUrl string) (*Producer, error) {
+	amqpURI := rabbitmqUrl
 	exchange := util.RABBITMQ_EXCHANGE
 	exchangeType := util.RABBITMQ_EXCHANGE_TYPE
 

@@ -3,7 +3,6 @@ package storage
 import (
 	"fmt"
 	"log"
-	"os"
 
 	util "tskscheduler/task-scheduler/util"
 
@@ -18,8 +17,8 @@ type Consumer struct {
 
 var connectionName = "task-scheduler-consumer"
 
-func NewConsumer(done chan int) (*Consumer, error) {
-	amqpURI := os.Getenv("RABBITMQ_URL")
+func NewConsumer(done chan int, rabbitmqUrl string) (*Consumer, error) {
+	amqpURI := rabbitmqUrl
 	exchange := util.RABBITMQ_EXCHANGE
 	exchangeType := util.RABBITMQ_EXCHANGE_TYPE
 
