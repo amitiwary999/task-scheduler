@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	model "tskscheduler/task-scheduler/model"
-	util "tskscheduler/task-scheduler/util"
+	util "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/util"
+
+	model "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/model"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )

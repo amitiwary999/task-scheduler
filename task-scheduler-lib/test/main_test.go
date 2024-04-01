@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 	"time"
-	"tskscheduler/task-scheduler/model"
-	manag "tskscheduler/task-scheduler/scheduler"
+
+	"github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/model"
+	manag "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/scheduler"
 
 	"github.com/google/uuid"
 )

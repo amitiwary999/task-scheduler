@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	scheduler "tskscheduler/task-scheduler"
+
+	scheduler "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler"
 
 	"github.com/joho/godotenv"
 )

@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	manager "tskscheduler/task-scheduler/scheduler"
-	storage "tskscheduler/task-scheduler/storage"
-	util "tskscheduler/task-scheduler/util"
+	manager "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/scheduler"
+	storage "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/storage"
+	util "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/util"
 )
 
 type TaskScheduler struct {

@@ -9,8 +9,9 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"tskscheduler/task-scheduler/model"
-	util "tskscheduler/task-scheduler/util"
+
+	"github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/model"
+	util "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/util"
 
 	"github.com/google/uuid"
 )

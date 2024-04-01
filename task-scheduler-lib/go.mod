@@ -1,4 +1,4 @@
-module tskscheduler
+module github.com/amitiwary999/TaskScheduler/task-scheduler-lib
 
 go 1.21.5
 

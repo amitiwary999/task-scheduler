@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	util "tskscheduler/task-scheduler/util"
+	util "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/util"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )

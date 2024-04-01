@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	model "tskscheduler/task-scheduler/model"
-	util "tskscheduler/task-scheduler/util"
+
+	model "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/model"
+	util "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/util"
 )
 
 type TaskManager struct {
