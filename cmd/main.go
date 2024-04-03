@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	scheduler "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler"
+	scheduler "github.com/amitiwary999/task-scheduler/scheduler"
 
 	"github.com/joho/godotenv"
 )

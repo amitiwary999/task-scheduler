@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/model"
-	manag "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/scheduler"
+	manag "github.com/amitiwary999/task-scheduler/manager"
+	"github.com/amitiwary999/task-scheduler/model"
 
 	"github.com/google/uuid"
 )

@@ -1,4 +1,4 @@
-package taskscheduler
+package scheduler
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	manager "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/scheduler"
-	storage "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/storage"
-	util "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/util"
+	manager "github.com/amitiwary999/task-scheduler/manager"
+	storage "github.com/amitiwary999/task-scheduler/storage"
+	util "github.com/amitiwary999/task-scheduler/util"
 )
 
 type TaskScheduler struct {

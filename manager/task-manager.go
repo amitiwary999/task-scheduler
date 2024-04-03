@@ -1,4 +1,4 @@
-package scheduler
+package manager
 
 import (
 	"encoding/json"
@@ -6,8 +6,8 @@ import (
 	"log"
 	"sync"
 
-	model "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/model"
-	util "github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/util"
+	model "github.com/amitiwary999/task-scheduler/model"
+	util "github.com/amitiwary999/task-scheduler/util"
 )
 
 type TaskManager struct {

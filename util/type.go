@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/amitiwary999/TaskScheduler/task-scheduler-lib/task-scheduler/model"
+	"github.com/amitiwary999/task-scheduler/model"
 )
 
 type AMQPConsumer interface {
