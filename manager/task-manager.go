@@ -74,6 +74,7 @@ func (tm *TaskManager) StartManager() {
 	go tm.receiveCompleteTaskFunc()
 	go tm.consumer.ServerJoinHandle(tm.serverJoin, util.NewServerJoinTag)
 	go tm.receiveServerJoinMessage()
+	go tm.assignPendingTasks()
 }
 
 func (tm *TaskManager) receiveNewTask() {
@@ -88,7 +89,7 @@ func (tm *TaskManager) receiveNewTask() {
 				fmt.Printf("json unmarshal error in receive task %v\n", err)
 			} else {
 				if task.Meta.Action == "ADD_TASK" {
-					go tm.assignTask(&task)
+					go tm.assignTask(&task, true)
 				}
 			}
 		}
@@ -148,8 +149,12 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 	}
 }
 
-func (tm *TaskManager) assignTask(task *model.Task) {
-	id, err := tm.supClient.SaveTask(&task.Meta)
+func (tm *TaskManager) assignTask(task *model.Task, isNewTask bool) {
+	var id string = ""
+	var err error = nil
+	if isNewTask {
+		id, err = tm.supClient.SaveTask(&task.Meta)
+	}
 	if err != nil {
 		log.Printf("error saving task %v\n", err)
 		return
@@ -184,4 +189,17 @@ func (tm *TaskManager) completeTask(task model.CompleteTask) {
 	}
 	tm.supClient.UpdateTaskComplete(task.Id)
 	fmt.Printf("complete task action\n")
+}
+
+func (tm *TaskManager) assignPendingTasks() {
+	pendingTaskByte, error := tm.supClient.GetPendingTask()
+	if error != nil {
+		fmt.Printf("failed top fetch the pending tasks %v\n", error)
+	} else {
+		var pendingTasks []model.Task
+		json.Unmarshal(pendingTaskByte, &pendingTasks)
+		for _, pendingTask := range pendingTasks {
+			tm.assignTask(&pendingTask, false)
+		}
+	}
 }

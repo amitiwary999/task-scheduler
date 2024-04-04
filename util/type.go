@@ -20,4 +20,5 @@ type SupabaseClient interface {
 	UpdateTaskComplete(id string) error
 	GetAllUsedServer() ([]byte, error)
 	GetTaskConfig() ([]byte, error)
+	GetPendingTask() ([]byte, error)
 }

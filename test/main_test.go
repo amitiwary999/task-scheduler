@@ -108,6 +108,10 @@ func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 	return mar, nil
 }
 
+func (s *SupabaseClient) GetPendingTask() ([]byte, error) {
+	return nil, nil
+}
+
 func BenchmarkTaskScheduler(b *testing.B) {
 	done := make(chan int)
 	taskM = manag.InitManager(&cons, &prod, &supa, done)

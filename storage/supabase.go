@@ -140,9 +140,9 @@ func (s *SupabaseClient) UpdateTaskComplete(id string) error {
 	}
 }
 
-func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
-	jobServersTable := util.SUPABASE_JOBSERVERS
-	url := fmt.Sprintf("%v%v?status=eq.1&select=serverId,status", s.baseUrl, jobServersTable)
+func (s *SupabaseClient) GetPendingTask() ([]byte, error) {
+	jobDetailTable := util.SUPABASE_JOBDETAIL
+	url := fmt.Sprintf("%v%v?status=eq.%v&select=meta", s.baseUrl, jobDetailTable, "pending")
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
 		fmt.Printf("failed to create get task by id req %v\n", reqErr)
@@ -166,5 +166,34 @@ func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 	} else {
 		log.Printf("error in fetch with status %v\n", resp.StatusCode)
 		return nil, fmt.Errorf("failed to get the unused server")
+	}
+}
+
+func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
+	jobServersTable := util.SUPABASE_JOBSERVERS
+	url := fmt.Sprintf("%v%v?status=eq.1&select=serverId,status", s.baseUrl, jobServersTable)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if reqErr != nil {
+		fmt.Printf("failed to create get task by id req %v\n", reqErr)
+		return nil, reqErr
+	}
+	authToken := fmt.Sprintf("Bearer %v", s.supabaseAuth)
+	req.Header.Set("Authorization", authToken)
+	req.Header.Set("apiKey", s.supabaseKeyString)
+	resp, respErr := s.httpClinet.Do(req)
+	if respErr != nil {
+		return nil, respErr
+	}
+	defer resp.Body.Close()
+	body, bodyErr := io.ReadAll(resp.Body)
+	if bodyErr != nil {
+		return nil, bodyErr
+	}
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		log.Printf("successfully fetch all pending task \n")
+		return body, nil
+	} else {
+		log.Printf("error in fetch pending task with status %v\n", resp.StatusCode)
+		return nil, fmt.Errorf("failed to get the pending task")
 	}
 }
