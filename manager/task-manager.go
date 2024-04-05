@@ -77,6 +77,10 @@ func (tm *TaskManager) StartManager() {
 	go tm.assignPendingTasks()
 }
 
+func (tm *TaskManager) AddNewTask(task *model.Task) {
+	go tm.assignTask(task, true)
+}
+
 func (tm *TaskManager) receiveNewTask() {
 	for {
 		select {

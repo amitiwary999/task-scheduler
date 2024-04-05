@@ -1,12 +1,14 @@
 package scheduler
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	manager "github.com/amitiwary999/task-scheduler/manager"
+	model "github.com/amitiwary999/task-scheduler/model"
 	storage "github.com/amitiwary999/task-scheduler/storage"
 	util "github.com/amitiwary999/task-scheduler/util"
 )
@@ -15,6 +17,7 @@ type TaskScheduler struct {
 	RabbitmqUrl  string
 	SupabaseAuth string
 	SupabaseKey  string
+	taskM        *manager.TaskManager
 }
 
 func NewTaskScheduler(rabbitmqUrl, supabaseAuth, supabaseKey string) *TaskScheduler {
@@ -43,10 +46,22 @@ func (t *TaskScheduler) StartScheduler() {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
 	taskM := manager.InitManager(consumer, producer, supa, done)
+	t.taskM = taskM
 	taskM.StartManager()
 
 	<-gracefulShutdown
 	close(done)
 	consumer.Shutdown()
 	producer.Shutdown()
+}
+
+func (t *TaskScheduler) AddNewTask(taskData []byte) error {
+	var task model.Task
+	err := json.Unmarshal(taskData, &task)
+	if err != nil {
+		return err
+	} else {
+		t.taskM.AddNewTask(&task)
+		return nil
+	}
 }
