@@ -142,7 +142,7 @@ func (s *SupabaseClient) UpdateTaskComplete(id string) error {
 
 func (s *SupabaseClient) GetPendingTask() ([]byte, error) {
 	jobDetailTable := util.SUPABASE_JOBDETAIL
-	url := fmt.Sprintf("%v%v?status=eq.%v&select=meta", s.baseUrl, jobDetailTable, "pending")
+	url := fmt.Sprintf("%v%v?status=eq.%v&select=id,meta", s.baseUrl, jobDetailTable, "pending")
 	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 	if reqErr != nil {
 		fmt.Printf("failed to create get task by id req %v\n", reqErr)

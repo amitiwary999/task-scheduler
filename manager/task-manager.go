@@ -153,11 +153,13 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 	}
 }
 
-func (tm *TaskManager) assignTask(task *model.Task, isNewTask bool) {
+func (tm *TaskManager) assignTask(task *model.Task, isNewTask bool, oldTaskId ...string) {
 	var id string = ""
 	var err error = nil
 	if isNewTask {
 		id, err = tm.supClient.SaveTask(&task.Meta)
+	} else if len(oldTaskId) > 0 {
+		id = oldTaskId[0]
 	}
 	if err != nil {
 		log.Printf("error saving task %v\n", err)
@@ -200,10 +202,13 @@ func (tm *TaskManager) assignPendingTasks() {
 	if error != nil {
 		fmt.Printf("failed top fetch the pending tasks %v\n", error)
 	} else {
-		var pendingTasks []model.Task
+		var pendingTasks []model.PendingTask
 		json.Unmarshal(pendingTaskByte, &pendingTasks)
 		for _, pendingTask := range pendingTasks {
-			tm.assignTask(&pendingTask, false)
+			var task = model.Task{
+				Meta: pendingTask.Meta,
+			}
+			tm.assignTask(&task, false, pendingTask.Id)
 		}
 	}
 }

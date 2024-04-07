@@ -17,6 +17,11 @@ type CompleteTask struct {
 	Meta TaskMeta `json:"meta"`
 }
 
+type PendingTask struct {
+	Id   string   `json:"id"`
+	Meta TaskMeta `json:"meta"`
+}
+
 type Servers struct {
 	Id   string `json:"id"`
 	Load int    `json:"load"`
