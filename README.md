@@ -8,3 +8,27 @@ JobConfig table has the task type and weight mapping.
 
 Use go get github.com/amitiwary999/task-scheduler to fetch this module in your code.
 
+import this library and then init the task scheduler
+
+```
+import ("github.com/amitiwary999/task-scheduler/scheduler")
+
+tsk := scheduler.NewTaskScheduler("RABBITMQ_URL", "SUPABASE_API_BASE_URL", "SUPABASE_AUTH", "SUPABASE_KEY")
+tsk.StartScheduler()
+```
+
+There is two way to send the task detail
+1. add the data in rabbitmq for queue `tasks` and exchange key `sondesh`.
+2. use AddNewTask function of TaskScheduler tsk.AddNewTask(byteArrayData). 
+Json Data 
+```
+{
+    "meta": {
+        "taskId": "unoque if the task"
+	    "taskType": "task type, it  should be one of type from the JobConfig table"
+	    "maxRetry": "max number fo time retry for this task before finally failing"
+	    "action":   "ADD_TASK"
+    }
+}
+```
+marshal this json and use it in `AddNewTask` function
