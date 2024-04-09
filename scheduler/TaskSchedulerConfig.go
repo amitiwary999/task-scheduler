@@ -14,17 +14,19 @@ import (
 )
 
 type TaskScheduler struct {
-	RabbitmqUrl  string
-	SupabaseAuth string
-	SupabaseKey  string
-	taskM        *manager.TaskManager
+	RabbitmqUrl        string
+	SupabaseApiBaseUrl string
+	SupabaseAuth       string
+	SupabaseKey        string
+	taskM              *manager.TaskManager
 }
 
-func NewTaskScheduler(rabbitmqUrl, supabaseAuth, supabaseKey string) *TaskScheduler {
+func NewTaskScheduler(rabbitmqUrl, supabaseApiBaseUrl, supabaseAuth, supabaseKey string) *TaskScheduler {
 	return &TaskScheduler{
-		RabbitmqUrl:  rabbitmqUrl,
-		SupabaseAuth: supabaseAuth,
-		SupabaseKey:  supabaseKey,
+		RabbitmqUrl:        rabbitmqUrl,
+		SupabaseAuth:       supabaseAuth,
+		SupabaseApiBaseUrl: supabaseApiBaseUrl,
+		SupabaseKey:        supabaseKey,
 	}
 }
 
@@ -41,7 +43,7 @@ func (t *TaskScheduler) StartScheduler() {
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
 	}
-	supa, error := storage.NewSupabaseClient(t.SupabaseAuth, t.SupabaseKey)
+	supa, error := storage.NewSupabaseClient(t.SupabaseApiBaseUrl, t.SupabaseAuth, t.SupabaseKey)
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}

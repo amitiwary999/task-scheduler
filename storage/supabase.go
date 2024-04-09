@@ -23,7 +23,7 @@ type SupabaseClient struct {
 	supabaseKeyString string
 }
 
-func NewSupabaseClient(supabaseAuth, supabaseKeyString string) (*SupabaseClient, error) {
+func NewSupabaseClient(supabaseApiBaseUrl, supabaseAuth, supabaseKeyString string) (*SupabaseClient, error) {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 100
 	t.MaxConnsPerHost = 100
@@ -34,7 +34,7 @@ func NewSupabaseClient(supabaseAuth, supabaseKeyString string) (*SupabaseClient,
 	}
 	return &SupabaseClient{
 		httpClinet:        client,
-		baseUrl:           util.SUPABASE_JOBDETAIL_TABLE_URL,
+		baseUrl:           supabaseApiBaseUrl,
 		supabaseAuth:      supabaseAuth,
 		supabaseKeyString: supabaseKeyString,
 	}, nil
