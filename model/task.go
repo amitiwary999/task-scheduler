@@ -6,6 +6,7 @@ type TaskMeta struct {
 	MaxRetry int    `json:"maxRetry"`
 	Action   string `json:"action"`
 	ServerId string `json:"serverId,omitempty"`
+	Delay    int    `json:"delay,omitempty"`
 }
 
 type Task struct {

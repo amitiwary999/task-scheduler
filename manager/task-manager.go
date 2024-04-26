@@ -1,10 +1,12 @@
 package manager
 
 import (
+	"container/heap"
 	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	model "github.com/amitiwary999/task-scheduler/model"
 	util "github.com/amitiwary999/task-scheduler/util"
@@ -21,6 +23,7 @@ type TaskManager struct {
 	serverJoin          chan []byte
 	done                chan int
 	lock                sync.Mutex
+	priorityQueue       PriorityQueue
 }
 
 func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClient util.SupabaseClient, done chan int) *TaskManager {
@@ -60,6 +63,7 @@ func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClie
 		ReceiveCompleteTask: make(chan []byte),
 		serverJoin:          make(chan []byte),
 		done:                done,
+		priorityQueue:       make(PriorityQueue, 0),
 	}
 }
 
@@ -68,6 +72,7 @@ func (tm *TaskManager) StartManager() {
 	queueName := util.RABBITMQ_TASK_QUEUE
 	completeTaskKey := util.RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY
 	taskCompleteQueue := util.RABBITMQ_TASK_COMPLETE_QUEUE
+	heap.Init(&tm.priorityQueue)
 	go tm.consumer.Handle(tm.ReceiveTask, queueName, key, util.TaskConsumerTag)
 	go tm.receiveNewTask()
 	go tm.consumer.Handle(tm.ReceiveCompleteTask, taskCompleteQueue, completeTaskKey, util.CompleteTaskConsumerTag)
@@ -75,6 +80,7 @@ func (tm *TaskManager) StartManager() {
 	go tm.consumer.ServerJoinHandle(tm.serverJoin, util.NewServerJoinTag)
 	go tm.receiveServerJoinMessage()
 	go tm.assignPendingTasks()
+	go tm.delayTaskTicker()
 }
 
 func (tm *TaskManager) AddNewTask(task *model.Task) {
@@ -93,7 +99,15 @@ func (tm *TaskManager) receiveNewTask() {
 				fmt.Printf("json unmarshal error in receive task %v\n", err)
 			} else {
 				if task.Meta.Action == "ADD_TASK" {
-					go tm.assignTask(&task, true)
+					if task.Meta.Delay > 0 {
+						delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
+						tm.priorityQueue.Push(&DelayTask{
+							Task: &task,
+							Time: delayTime,
+						})
+					} else {
+						go tm.assignTask(&task, true)
+					}
 				}
 			}
 		}
@@ -179,6 +193,24 @@ func (tm *TaskManager) assignTask(task *model.Task, isNewTask bool, oldTaskId ..
 		if minServer != nil {
 			minServer.Load = minLoadVal
 			tm.producer.SendTaskMessage(id, minServer.Id)
+		}
+	}
+}
+
+func (tm *TaskManager) delayTaskTicker() {
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-tm.done:
+			return
+		case <-ticker.C:
+			taskI := tm.priorityQueue.Pop()
+			task := taskI.(*DelayTask)
+			if task.Time-time.Now().Unix() <= 0 {
+				tm.assignTask(task.Task, true)
+			} else {
+				tm.priorityQueue.Push(task)
+			}
 		}
 	}
 }

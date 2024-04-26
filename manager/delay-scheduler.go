@@ -4,12 +4,12 @@ import (
 	model "github.com/amitiwary999/task-scheduler/model"
 )
 
-type delayTask struct {
+type DelayTask struct {
 	Task *model.Task
 	Time int64
 }
 
-type PriorityQueue []*delayTask
+type PriorityQueue []*DelayTask
 
 func (pq PriorityQueue) Len() int { return len(pq) }
 
@@ -22,7 +22,7 @@ func (pq PriorityQueue) Swap(i, j int) {
 }
 
 func (pq *PriorityQueue) Push(task interface{}) {
-	*pq = append(*pq, task.(*delayTask))
+	*pq = append(*pq, task.(*DelayTask))
 }
 
 func (pq *PriorityQueue) Pop() interface{} {
