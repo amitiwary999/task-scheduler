@@ -4,7 +4,6 @@ import (
 	"container/heap"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -96,7 +95,7 @@ func (tm *TaskManager) AddNewTask(task *model.Task) {
 				Time: delayTime,
 			})
 		} else {
-			go tm.assignTask(task, true)
+			go tm.assignTask(task)
 		}
 	}
 }
@@ -125,7 +124,7 @@ func (tm *TaskManager) receiveNewTask() {
 								Time: delayTime,
 							})
 						} else {
-							go tm.assignTask(task, true)
+							go tm.assignTask(task)
 						}
 					}
 				}
@@ -187,18 +186,9 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 	}
 }
 
-func (tm *TaskManager) assignTask(task *model.Task, isNewTask bool, oldTaskId ...string) {
+func (tm *TaskManager) assignTask(task *model.Task) {
 	var id string = ""
-	var err error = nil
-	if isNewTask {
-		id = task.Id
-	} else if len(oldTaskId) > 0 {
-		id = oldTaskId[0]
-	}
-	if err != nil {
-		log.Printf("error saving task %v\n", err)
-		return
-	}
+	id = task.Id
 	taskWeight, ok := tm.tasksWeight[task.Meta.TaskType]
 	var minServer *model.Servers
 	minLoadVal := 10000000
@@ -228,7 +218,7 @@ func (tm *TaskManager) delayTaskTicker() {
 			if taskI != nil {
 				task := taskI.(*DelayTask)
 				if task.Time-time.Now().Unix() <= 0 {
-					go tm.assignTask(task.Task, true)
+					go tm.assignTask(task.Task)
 				} else {
 					tm.priorityQueue.Push(task)
 				}
@@ -261,8 +251,17 @@ func (tm *TaskManager) assignPendingTasks() {
 		for _, pendingTask := range pendingTasks {
 			var task = model.Task{
 				Meta: pendingTask.Meta,
+				Id:   pendingTask.Id,
 			}
-			tm.assignTask(&task, false, pendingTask.Id)
+			if pendingTask.Meta.Delay > 0 {
+				delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
+				tm.priorityQueue.Push(&DelayTask{
+					Task: &task,
+					Time: delayTime,
+				})
+			} else {
+				tm.assignTask(&task)
+			}
 		}
 	}
 }
