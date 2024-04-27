@@ -84,7 +84,21 @@ func (tm *TaskManager) StartManager() {
 }
 
 func (tm *TaskManager) AddNewTask(task *model.Task) {
-	go tm.assignTask(task, true)
+	id, err := tm.supClient.SaveTask(&task.Meta)
+	if err != nil {
+		fmt.Printf("failed to save the task %v\n", err)
+	} else {
+		task.Id = id
+		if task.Meta.Delay > 0 {
+			delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
+			tm.priorityQueue.Push(&DelayTask{
+				Task: task,
+				Time: delayTime,
+			})
+		} else {
+			go tm.assignTask(task, true)
+		}
+	}
 }
 
 func (tm *TaskManager) receiveNewTask() {
@@ -93,20 +107,26 @@ func (tm *TaskManager) receiveNewTask() {
 		case <-tm.done:
 			return
 		case taskData := <-tm.ReceiveTask:
-			var task model.Task
+			var task *model.Task
 			err := json.Unmarshal(taskData, &task)
 			if err != nil {
 				fmt.Printf("json unmarshal error in receive task %v\n", err)
 			} else {
 				if task.Meta.Action == "ADD_TASK" {
-					if task.Meta.Delay > 0 {
-						delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
-						tm.priorityQueue.Push(&DelayTask{
-							Task: &task,
-							Time: delayTime,
-						})
+					id, err := tm.supClient.SaveTask(&task.Meta)
+					if err != nil {
+						fmt.Printf("failed to save the task %v\n", err)
 					} else {
-						go tm.assignTask(&task, true)
+						task.Id = id
+						if task.Meta.Delay > 0 {
+							delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
+							tm.priorityQueue.Push(&DelayTask{
+								Task: task,
+								Time: delayTime,
+							})
+						} else {
+							go tm.assignTask(task, true)
+						}
 					}
 				}
 			}
@@ -171,7 +191,7 @@ func (tm *TaskManager) assignTask(task *model.Task, isNewTask bool, oldTaskId ..
 	var id string = ""
 	var err error = nil
 	if isNewTask {
-		id, err = tm.supClient.SaveTask(&task.Meta)
+		id = task.Id
 	} else if len(oldTaskId) > 0 {
 		id = oldTaskId[0]
 	}
@@ -205,11 +225,13 @@ func (tm *TaskManager) delayTaskTicker() {
 			return
 		case <-ticker.C:
 			taskI := tm.priorityQueue.Pop()
-			task := taskI.(*DelayTask)
-			if task.Time-time.Now().Unix() <= 0 {
-				tm.assignTask(task.Task, true)
-			} else {
-				tm.priorityQueue.Push(task)
+			if taskI != nil {
+				task := taskI.(*DelayTask)
+				if task.Time-time.Now().Unix() <= 0 {
+					go tm.assignTask(task.Task, true)
+				} else {
+					tm.priorityQueue.Push(task)
+				}
 			}
 		}
 	}

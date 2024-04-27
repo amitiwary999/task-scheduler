@@ -27,6 +27,9 @@ func (pq *PriorityQueue) Push(task interface{}) {
 
 func (pq *PriorityQueue) Pop() interface{} {
 	prev := *pq
+	if len(prev) == 0 {
+		return nil
+	}
 	task := prev[len(prev)-1]
 	*pq = prev[0 : len(prev)-1]
 	return task

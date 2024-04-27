@@ -11,6 +11,7 @@ type TaskMeta struct {
 
 type Task struct {
 	Meta TaskMeta `json:"meta"`
+	Id   string   `json:"id,omitempty"`
 }
 
 type CompleteTask struct {
