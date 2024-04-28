@@ -83,16 +83,18 @@ func (tm *TaskManager) StartManager() {
 }
 
 func (tm *TaskManager) AddNewTask(task *model.Task) {
+	if task.Meta.Delay > 0 {
+		task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
+	}
 	id, err := tm.supClient.SaveTask(&task.Meta)
 	if err != nil {
 		fmt.Printf("failed to save the task %v\n", err)
 	} else {
 		task.Id = id
-		if task.Meta.Delay > 0 {
-			delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
+		if task.Meta.ExecutionTime > 0 {
 			tm.priorityQueue.Push(&DelayTask{
 				Task: task,
-				Time: delayTime,
+				Time: task.Meta.ExecutionTime,
 			})
 		} else {
 			go tm.assignTask(task)
@@ -112,16 +114,18 @@ func (tm *TaskManager) receiveNewTask() {
 				fmt.Printf("json unmarshal error in receive task %v\n", err)
 			} else {
 				if task.Meta.Action == "ADD_TASK" {
+					if task.Meta.Delay > 0 {
+						task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
+					}
 					id, err := tm.supClient.SaveTask(&task.Meta)
 					if err != nil {
 						fmt.Printf("failed to save the task %v\n", err)
 					} else {
 						task.Id = id
-						if task.Meta.Delay > 0 {
-							delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
+						if task.Meta.ExecutionTime > 0 {
 							tm.priorityQueue.Push(&DelayTask{
 								Task: task,
-								Time: delayTime,
+								Time: task.Meta.ExecutionTime,
 							})
 						} else {
 							go tm.assignTask(task)
@@ -253,11 +257,10 @@ func (tm *TaskManager) assignPendingTasks() {
 				Meta: pendingTask.Meta,
 				Id:   pendingTask.Id,
 			}
-			if pendingTask.Meta.Delay > 0 {
-				delayTime := time.Now().Unix() + int64(task.Meta.Delay)*60
+			if pendingTask.Meta.ExecutionTime > 0 {
 				tm.priorityQueue.Push(&DelayTask{
 					Task: &task,
-					Time: delayTime,
+					Time: task.Meta.ExecutionTime,
 				})
 			} else {
 				tm.assignTask(&task)
