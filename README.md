@@ -28,6 +28,8 @@ Json Data
 	    "taskType": "task type, it  should be one of type from the JobConfig table"
 	    "maxRetry": "max number fo time retry for this task before finally failing"
 	    "action":   "ADD_TASK"
+        "delay": "after how much delay(in mins) the task should  be execute(number)"
+        "executionTime": "exactly at what time the task should be perfomed(epoch time number in utc)"
     }
 }
 ```
