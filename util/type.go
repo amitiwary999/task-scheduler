@@ -22,3 +22,9 @@ type SupabaseClient interface {
 	GetTaskConfig() ([]byte, error)
 	GetPendingTask() ([]byte, error)
 }
+
+type InitConfig struct {
+	RabbitmqUrl string
+	PostgresUrl string
+	PoolLimit   int16
+}
