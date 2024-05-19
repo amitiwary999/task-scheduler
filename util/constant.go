@@ -17,3 +17,4 @@ const SERVER_JOIN_RABBITMQ_QUEUE = "serverjoin"
 const RABBITMQ_SERVER_JOIN_EXCHANGE_KEY = "joinserversondesh"
 const RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY = "complete-task-sondesh"
 const RABBITMQ_TASK_COMPLETE_QUEUE = "complete-tasks"
+const POSTGRES_QUERY_TIMEOUT = 10
