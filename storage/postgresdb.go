@@ -7,6 +7,7 @@ import (
 
 	"github.com/amitiwary999/task-scheduler/model"
 	util "github.com/amitiwary999/task-scheduler/util"
+	"github.com/google/uuid"
 )
 
 type PostgresDbClient struct {
@@ -47,4 +48,24 @@ func (db *PostgresDbClient) GetTaskConfig() (*[]model.TaskWeight, error) {
 		taskWeights = append(taskWeights, taskWeight)
 	}
 	return &taskWeights, nil
+}
+
+func (db *PostgresDbClient) SaveTask(meta *model.TaskMeta) (string, error) {
+	id := uuid.New().String()
+	query := "INSERT INTO jobdetail(id, meta) VALUES($1, $2)"
+	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
+	defer cancel()
+	_, err := db.DB.ExecContext(ctx, query, id, meta)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+func (db *PostgresDbClient) UpdateTaskComplete(id string) error {
+	query := "UPDATE jobdetail SET status = $1 WHERE id = $2"
+	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
+	defer cancel()
+	_, err := db.DB.ExecContext(ctx, query, "completed", id)
+	return err
 }
