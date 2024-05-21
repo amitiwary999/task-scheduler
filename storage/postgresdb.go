@@ -69,3 +69,37 @@ func (db *PostgresDbClient) UpdateTaskComplete(id string) error {
 	_, err := db.DB.ExecContext(ctx, query, "completed", id)
 	return err
 }
+
+func (db *PostgresDbClient) GetPendingTask() (*[]model.PendingTask, error) {
+	query := "SELECT id, meta FROM jobdetail WHERE status = $1"
+	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
+	defer cancel()
+	rows, err := db.DB.QueryContext(ctx, query, "pending")
+	if err != nil {
+		return nil, err
+	}
+	var pendingTasks []model.PendingTask
+	for rows.Next() {
+		var pendingTask model.PendingTask
+		rows.Scan(&pendingTask.Id, &pendingTask.Meta)
+		pendingTasks = append(pendingTasks, pendingTask)
+	}
+	return &pendingTasks, nil
+}
+
+func (db *PostgresDbClient) GetAllUsedServer() (*[]model.JoinData, error) {
+	query := "SELECT serverId, status FROM jobservers WHERE status = 1"
+	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
+	defer cancel()
+	rows, err := db.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	var joinDatas []model.JoinData
+	for rows.Next() {
+		var joinData model.JoinData
+		rows.Scan(&joinData.ServerId, &joinData.Status)
+		joinDatas = append(joinDatas, joinData)
+	}
+	return &joinDatas, nil
+}
