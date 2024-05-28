@@ -16,7 +16,7 @@ type TaskManager struct {
 	servers             map[string]*model.Servers
 	consumer            util.AMQPConsumer
 	producer            util.AMQPProducer
-	supClient           util.SupabaseClient
+	postgClient         util.PostgClient
 	ReceiveTask         chan []byte
 	ReceiveCompleteTask chan []byte
 	serverJoin          chan []byte
@@ -25,24 +25,21 @@ type TaskManager struct {
 	priorityQueue       PriorityQueue
 }
 
-func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClient util.SupabaseClient, done chan int) *TaskManager {
+func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, postgClient util.PostgClient, done chan int) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
 
 	var taskWeightConfig []model.TaskWeight
-	taskConfigByte, _ := supClient.GetTaskConfig()
-	json.Unmarshal(taskConfigByte, &taskWeightConfig)
+	taskWeightConfig, _ = postgClient.GetTaskConfig()
 	for _, taskWeight := range taskWeightConfig {
 		tasksWeight[taskWeight.Type] = taskWeight
 	}
 
-	var serversJoinData []model.JoinData
-	serversByte, serversErr := supClient.GetAllUsedServer()
+	serversJoinData, serversErr := postgClient.GetAllUsedServer()
 
 	if serversErr != nil {
 		fmt.Printf("error in get all used servers %v\n", serversErr)
 	} else {
-		json.Unmarshal(serversByte, &serversJoinData)
 		for _, serverJonData := range serversJoinData {
 			server := model.Servers{
 				Id:   serverJonData.ServerId,
@@ -57,7 +54,7 @@ func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, supClie
 		servers:             servers,
 		producer:            producer,
 		consumer:            consumer,
-		supClient:           supClient,
+		postgClient:         postgClient,
 		ReceiveTask:         make(chan []byte),
 		ReceiveCompleteTask: make(chan []byte),
 		serverJoin:          make(chan []byte),
@@ -86,7 +83,7 @@ func (tm *TaskManager) AddNewTask(task *model.Task) {
 	if task.Meta.Delay > 0 {
 		task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
 	}
-	id, err := tm.supClient.SaveTask(&task.Meta)
+	id, err := tm.postgClient.SaveTask(&task.Meta)
 	if err != nil {
 		fmt.Printf("failed to save the task %v\n", err)
 	} else {
@@ -117,7 +114,7 @@ func (tm *TaskManager) receiveNewTask() {
 					if task.Meta.Delay > 0 {
 						task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
 					}
-					id, err := tm.supClient.SaveTask(&task.Meta)
+					id, err := tm.postgClient.SaveTask(&task.Meta)
 					if err != nil {
 						fmt.Printf("failed to save the task %v\n", err)
 					} else {
@@ -241,17 +238,15 @@ func (tm *TaskManager) completeTask(task model.CompleteTask) {
 		server.Load = server.Load - taskWeight.Weight
 		fmt.Printf("server load reduced %v for id %v\n", server.Load, server.Id)
 	}
-	tm.supClient.UpdateTaskComplete(task.Id)
+	tm.postgClient.UpdateTaskComplete(task.Id)
 	fmt.Printf("complete task action\n")
 }
 
 func (tm *TaskManager) assignPendingTasks() {
-	pendingTaskByte, error := tm.supClient.GetPendingTask()
+	pendingTasks, error := tm.postgClient.GetPendingTask()
 	if error != nil {
 		fmt.Printf("failed top fetch the pending tasks %v\n", error)
 	} else {
-		var pendingTasks []model.PendingTask
-		json.Unmarshal(pendingTaskByte, &pendingTasks)
 		for _, pendingTask := range pendingTasks {
 			var task = model.Task{
 				Meta: pendingTask.Meta,

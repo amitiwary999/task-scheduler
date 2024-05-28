@@ -33,7 +33,7 @@ func NewPostgresClient(connectionUrl string, poolLimit int16) (*PostgresDbClient
 	}, nil
 }
 
-func (db *PostgresDbClient) GetTaskConfig() (*[]model.TaskWeight, error) {
+func (db *PostgresDbClient) GetTaskConfig() ([]model.TaskWeight, error) {
 	query := `SELECT type, weight FROM jobconfig`
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
@@ -47,7 +47,7 @@ func (db *PostgresDbClient) GetTaskConfig() (*[]model.TaskWeight, error) {
 		rows.Scan(&taskWeight.Type, &taskWeight.Weight)
 		taskWeights = append(taskWeights, taskWeight)
 	}
-	return &taskWeights, nil
+	return taskWeights, nil
 }
 
 func (db *PostgresDbClient) SaveTask(meta *model.TaskMeta) (string, error) {
@@ -70,7 +70,7 @@ func (db *PostgresDbClient) UpdateTaskComplete(id string) error {
 	return err
 }
 
-func (db *PostgresDbClient) GetPendingTask() (*[]model.PendingTask, error) {
+func (db *PostgresDbClient) GetPendingTask() ([]model.PendingTask, error) {
 	query := "SELECT id, meta FROM jobdetail WHERE status = $1"
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
@@ -84,10 +84,10 @@ func (db *PostgresDbClient) GetPendingTask() (*[]model.PendingTask, error) {
 		rows.Scan(&pendingTask.Id, &pendingTask.Meta)
 		pendingTasks = append(pendingTasks, pendingTask)
 	}
-	return &pendingTasks, nil
+	return pendingTasks, nil
 }
 
-func (db *PostgresDbClient) GetAllUsedServer() (*[]model.JoinData, error) {
+func (db *PostgresDbClient) GetAllUsedServer() ([]model.JoinData, error) {
 	query := "SELECT serverId, status FROM jobservers WHERE status = 1"
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
@@ -101,5 +101,5 @@ func (db *PostgresDbClient) GetAllUsedServer() (*[]model.JoinData, error) {
 		rows.Scan(&joinData.ServerId, &joinData.Status)
 		joinDatas = append(joinDatas, joinData)
 	}
-	return &joinDatas, nil
+	return joinDatas, nil
 }

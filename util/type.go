@@ -26,9 +26,9 @@ type SupabaseClient interface {
 type PostgClient interface {
 	SaveTask(meta *model.TaskMeta) (string, error)
 	UpdateTaskComplete(id string) error
-	GetAllUsedServer() (*[]model.JoinData, error)
-	GetTaskConfig() (*[]model.TaskWeight, error)
-	GetPendingTask() (*[]model.PendingTask, error)
+	GetAllUsedServer() ([]model.JoinData, error)
+	GetTaskConfig() ([]model.TaskWeight, error)
+	GetPendingTask() ([]model.PendingTask, error)
 }
 
 type InitConfig struct {

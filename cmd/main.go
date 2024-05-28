@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	scheduler "github.com/amitiwary999/task-scheduler/scheduler"
 
@@ -14,6 +15,11 @@ func main() {
 	if err != nil {
 		fmt.Printf("error load env %v\n", err)
 	}
-	tsk := scheduler.NewTaskScheduler(os.Getenv("RABBITMQ_URL"), os.Getenv("SUPABASE_API_BASE_URL"), os.Getenv("SUPABASE_AUTH"), os.Getenv("SUPABASE_KEY"))
-	tsk.StartScheduler()
+	poolLimit, err := strconv.Atoi(os.Getenv("POSTGRES_POOL_LIMIT"))
+	if err != nil {
+		fmt.Printf("error in the string conversion pool limit %v", err)
+	} else {
+		tsk := scheduler.NewTaskScheduler(os.Getenv("RABBITMQ_URL"), os.Getenv("POSTGRES_URL"), int16(poolLimit))
+		tsk.StartScheduler()
+	}
 }

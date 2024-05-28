@@ -18,14 +18,14 @@ type Consumer struct {
 type Producer struct {
 }
 
-type SupabaseClient struct {
+type PostgClient struct {
 }
 
 var cons = Consumer{}
 
 var prod = Producer{}
 
-var supa = SupabaseClient{}
+var postg = PostgClient{}
 
 func (c *Consumer) Shutdown() {
 
@@ -64,7 +64,7 @@ func (p *Producer) Shutdown() {
 
 }
 
-func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
+func (s *PostgClient) GetTaskConfig() ([]model.TaskWeight, error) {
 	var task1 = model.TaskWeight{
 		Type:   "task1",
 		Weight: 9,
@@ -78,18 +78,18 @@ func (s *SupabaseClient) GetTaskConfig() ([]byte, error) {
 	var taskWeightConfig []model.TaskWeight
 	taskWeightConfig = append(taskWeightConfig, task1)
 	taskWeightConfig = append(taskWeightConfig, task2)
-	return json.Marshal(taskWeightConfig)
+	return taskWeightConfig, nil
 }
-func (s *SupabaseClient) SaveTask(meta *model.TaskMeta) (string, error) {
+func (s *PostgClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	id := uuid.New().String()
 	time.Sleep(time.Duration(time.Millisecond) * 50)
 	return id, nil
 }
-func (s *SupabaseClient) UpdateTaskComplete(id string) error {
+func (s *PostgClient) UpdateTaskComplete(id string) error {
 	time.Sleep(time.Duration(time.Millisecond) * 50)
 	return nil
 }
-func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
+func (s *PostgClient) GetAllUsedServer() ([]model.JoinData, error) {
 	var joinData1 = model.JoinData{
 		ServerId: "server1",
 		Status:   0,
@@ -101,20 +101,16 @@ func (s *SupabaseClient) GetAllUsedServer() ([]byte, error) {
 	var serverConfig []model.JoinData
 	serverConfig = append(serverConfig, joinData1)
 	serverConfig = append(serverConfig, joinData2)
-	mar, err := json.Marshal(serverConfig)
-	if err != nil {
-		return nil, err
-	}
-	return mar, nil
+	return serverConfig, nil
 }
 
-func (s *SupabaseClient) GetPendingTask() ([]byte, error) {
+func (s *PostgClient) GetPendingTask() ([]model.PendingTask, error) {
 	return nil, nil
 }
 
 func BenchmarkTaskScheduler(b *testing.B) {
 	done := make(chan int)
-	taskM = manag.InitManager(&cons, &prod, &supa, done)
+	taskM = manag.InitManager(&cons, &prod, &postg, done)
 	taskM.StartManager()
 	for i := 0; i < b.N; i++ {
 		if i%3 == 0 {

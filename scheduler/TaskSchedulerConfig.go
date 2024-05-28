@@ -14,19 +14,17 @@ import (
 )
 
 type TaskScheduler struct {
-	RabbitmqUrl        string
-	SupabaseApiBaseUrl string
-	SupabaseAuth       string
-	SupabaseKey        string
-	taskM              *manager.TaskManager
+	RabbitmqUrl string
+	PostgUrl    string
+	PoolLimit   int16
+	taskM       *manager.TaskManager
 }
 
-func NewTaskScheduler(rabbitmqUrl, supabaseApiBaseUrl, supabaseAuth, supabaseKey string) *TaskScheduler {
+func NewTaskScheduler(rabbitmqUrl, postgUrl string, poolLimit int16) *TaskScheduler {
 	return &TaskScheduler{
-		RabbitmqUrl:        rabbitmqUrl,
-		SupabaseAuth:       supabaseAuth,
-		SupabaseApiBaseUrl: supabaseApiBaseUrl,
-		SupabaseKey:        supabaseKey,
+		RabbitmqUrl: rabbitmqUrl,
+		PostgUrl:    postgUrl,
+		PoolLimit:   poolLimit,
 	}
 }
 
@@ -43,11 +41,11 @@ func (t *TaskScheduler) StartScheduler() {
 	if err != nil {
 		fmt.Printf("amq connection error %v\n", err)
 	}
-	supa, error := storage.NewSupabaseClient(t.SupabaseApiBaseUrl, t.SupabaseAuth, t.SupabaseKey)
+	postgClient, error := storage.NewPostgresClient(t.PostgUrl, t.PoolLimit)
 	if error != nil {
 		fmt.Printf("supabase cloient failed %v\n", error)
 	}
-	taskM := manager.InitManager(consumer, producer, supa, done)
+	taskM := manager.InitManager(consumer, producer, postgClient, done)
 	t.taskM = taskM
 	taskM.StartManager()
 
