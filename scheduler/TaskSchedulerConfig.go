@@ -43,7 +43,7 @@ func (t *TaskScheduler) StartScheduler() {
 	}
 	postgClient, error := storage.NewPostgresClient(t.PostgUrl, t.PoolLimit)
 	if error != nil {
-		fmt.Printf("supabase cloient failed %v\n", error)
+		fmt.Printf("postgres cient failed %v\n", error)
 	}
 	taskM := manager.InitManager(consumer, producer, postgClient, done)
 	t.taskM = taskM

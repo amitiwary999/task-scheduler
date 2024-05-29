@@ -3,11 +3,13 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/amitiwary999/task-scheduler/model"
 	util "github.com/amitiwary999/task-scheduler/util"
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 )
 
 type PostgresDbClient struct {
@@ -52,10 +54,14 @@ func (db *PostgresDbClient) GetTaskConfig() ([]model.TaskWeight, error) {
 
 func (db *PostgresDbClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	id := uuid.New().String()
+	metaB, err := json.Marshal(meta)
+	if err != nil {
+		return "", err
+	}
 	query := "INSERT INTO jobdetail(id, meta) VALUES($1, $2)"
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
-	_, err := db.DB.ExecContext(ctx, query, id, meta)
+	_, err = db.DB.ExecContext(ctx, query, id, metaB)
 	if err != nil {
 		return "", err
 	}
