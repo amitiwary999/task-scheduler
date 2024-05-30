@@ -1,5 +1,7 @@
 package model
 
+import "encoding/json"
+
 type TaskMeta struct {
 	TaskId        string `json:"taskId"`
 	TaskType      string `json:"taskType"`
@@ -47,4 +49,8 @@ type TaskStatus struct {
 type JoinData struct {
 	ServerId string `json:"serverId"`
 	Status   int    `json:"status"`
+}
+
+func (m *TaskMeta) Scan(value interface{}) error {
+	return json.Unmarshal(value.([]byte), m)
 }
