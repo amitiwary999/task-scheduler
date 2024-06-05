@@ -1,12 +1,9 @@
 package manager
 
-import (
-	model "github.com/amitiwary999/task-scheduler/model"
-)
-
 type DelayTask struct {
-	Task *model.Task
-	Time int64
+	IdTask   string
+	TaskType string
+	Time     int64
 }
 
 type PriorityQueue []*DelayTask

@@ -90,11 +90,12 @@ func (tm *TaskManager) AddNewTask(task *model.Task) {
 		task.Id = id
 		if task.Meta.ExecutionTime > 0 {
 			tm.priorityQueue.Push(&DelayTask{
-				Task: task,
-				Time: task.Meta.ExecutionTime,
+				IdTask:   task.Id,
+				TaskType: task.Meta.TaskType,
+				Time:     task.Meta.ExecutionTime,
 			})
 		} else {
-			go tm.assignTask(task)
+			go tm.assignTask(task.Id, task.Meta.TaskType)
 		}
 	}
 }
@@ -121,11 +122,12 @@ func (tm *TaskManager) receiveNewTask() {
 						task.Id = id
 						if task.Meta.ExecutionTime > 0 {
 							tm.priorityQueue.Push(&DelayTask{
-								Task: task,
-								Time: task.Meta.ExecutionTime,
+								IdTask:   task.Id,
+								TaskType: task.Meta.TaskType,
+								Time:     task.Meta.ExecutionTime,
 							})
 						} else {
-							go tm.assignTask(task)
+							go tm.assignTask(task.Id, task.Meta.TaskType)
 						}
 					}
 				}
@@ -187,10 +189,10 @@ func (tm *TaskManager) receiveServerJoinMessage() {
 	}
 }
 
-func (tm *TaskManager) assignTask(task *model.Task) {
+func (tm *TaskManager) assignTask(idTask, taskType string) {
 	var id string = ""
-	id = task.Id
-	taskWeight, ok := tm.tasksWeight[task.Meta.TaskType]
+	id = idTask
+	taskWeight, ok := tm.tasksWeight[taskType]
 	var minServer *model.Servers
 	minLoadVal := 10000000
 	if ok {
@@ -219,7 +221,7 @@ func (tm *TaskManager) delayTaskTicker() {
 			if taskI != nil {
 				task := taskI.(*DelayTask)
 				if task.Time-time.Now().Unix() <= 0 {
-					go tm.assignTask(task.Task)
+					go tm.assignTask(task.IdTask, task.TaskType)
 				} else {
 					tm.priorityQueue.Push(task)
 				}
@@ -254,11 +256,12 @@ func (tm *TaskManager) assignPendingTasks() {
 			}
 			if pendingTask.Meta.ExecutionTime > 0 {
 				tm.priorityQueue.Push(&DelayTask{
-					Task: &task,
-					Time: task.Meta.ExecutionTime,
+					IdTask:   task.Id,
+					TaskType: task.Meta.TaskType,
+					Time:     task.Meta.ExecutionTime,
 				})
 			} else {
-				tm.assignTask(&task)
+				tm.assignTask(task.Id, task.Meta.TaskType)
 			}
 		}
 	}
