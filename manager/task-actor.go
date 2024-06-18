@@ -1,20 +1,18 @@
 package manager
 
 type TaskActor struct {
-	maxWorker   uint16
-	workerCount uint16
-	done        chan int
-	taskChan    chan func()
-	taskQueue   chan func()
+	maxWorker uint16
+	done      chan int
+	taskChan  chan func()
+	taskQueue chan func()
 }
 
 func NewTaskActor(maxWorker uint16, done chan int, tasksSize uint16) *TaskActor {
 	ta := &TaskActor{
-		maxWorker:   maxWorker,
-		workerCount: 0,
-		done:        done,
-		taskQueue:   make(chan func(), tasksSize),
-		taskChan:    make(chan func()),
+		maxWorker: maxWorker,
+		done:      done,
+		taskQueue: make(chan func(), tasksSize),
+		taskChan:  make(chan func()),
 	}
 	go ta.Dispatch()
 	return ta
@@ -25,29 +23,35 @@ func (ta *TaskActor) SubmitTask(fn func()) {
 }
 
 func (ta *TaskActor) Dispatch() {
+	var workerCount uint16 = 0
+ExitLoop:
 	for {
 		select {
 		case taskF, ok := <-ta.taskChan:
 			if !ok {
 				break
 			}
-			if ta.workerCount < ta.maxWorker {
+			if workerCount < ta.maxWorker {
 				go ta.DoAction(taskF)
-				ta.workerCount++
+				workerCount++
 			} else {
 				ta.taskQueue <- taskF
 			}
 		case <-ta.done:
-			return
+			break ExitLoop
 		}
 	}
 }
 
 func (ta *TaskActor) DoAction(fn func()) {
 	task := fn
-	for task != nil {
+ExitLoop:
+	for {
 		task()
-		task = <-ta.taskQueue
+		select {
+		case task = <-ta.taskQueue:
+		case <-ta.done:
+			break ExitLoop
+		}
 	}
-	ta.workerCount--
 }
