@@ -3,14 +3,15 @@ package model
 import "encoding/json"
 
 type TaskMeta struct {
-	Delay         int   `json:"delay,omitempty"`
-	ExecutionTime int64 `json:"executionTime,omitempty"`
-	TaskFn        func()
+	MetaId        string `json:"metaId"`
+	Delay         int    `json:"delay,omitempty"`
+	ExecutionTime int64  `json:"executionTime,omitempty"`
 }
 
 type Task struct {
-	Meta TaskMeta `json:"meta"`
-	Id   string   `json:"id,omitempty"`
+	Meta   TaskMeta `json:"meta"`
+	Id     string   `json:"id,omitempty"`
+	TaskFn func(string)
 }
 
 type CompleteTask struct {
@@ -40,6 +41,11 @@ type TaskMessage struct {
 
 type TaskStatus struct {
 	Status string `json:"status"`
+}
+
+type ActorTask struct {
+	MetaId string
+	TaskFn func(metaId string)
 }
 
 type JoinData struct {

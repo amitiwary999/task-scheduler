@@ -1,25 +1,29 @@
 package manager
 
+import (
+	model "github.com/amitiwary999/task-scheduler/model"
+)
+
 type TaskActor struct {
 	maxWorker uint16
 	done      chan int
-	taskChan  chan func()
-	taskQueue chan func()
+	taskChan  chan model.ActorTask
+	taskQueue chan model.ActorTask
 }
 
 func NewTaskActor(maxWorker uint16, done chan int, tasksSize uint16) *TaskActor {
 	ta := &TaskActor{
 		maxWorker: maxWorker,
 		done:      done,
-		taskQueue: make(chan func(), tasksSize),
-		taskChan:  make(chan func()),
+		taskQueue: make(chan model.ActorTask, tasksSize),
+		taskChan:  make(chan model.ActorTask),
 	}
 	go ta.Dispatch()
 	return ta
 }
 
-func (ta *TaskActor) SubmitTask(fn func()) {
-	ta.taskChan <- fn
+func (ta *TaskActor) SubmitTask(tsk model.ActorTask) {
+	ta.taskChan <- tsk
 }
 
 func (ta *TaskActor) Dispatch() {
@@ -43,11 +47,11 @@ ExitLoop:
 	}
 }
 
-func (ta *TaskActor) DoAction(fn func()) {
-	task := fn
+func (ta *TaskActor) DoAction(tsk model.ActorTask) {
+	task := tsk
 ExitLoop:
 	for {
-		task()
+		task.TaskFn(task.MetaId)
 		select {
 		case task = <-ta.taskQueue:
 		case <-ta.done:

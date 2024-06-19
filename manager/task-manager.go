@@ -65,20 +65,25 @@ func (tm *TaskManager) AddNewTask(task *model.Task) {
 		if task.Meta.ExecutionTime > 0 {
 			tm.priorityQueue.Push(&DelayTask{
 				IdTask: task.Id,
+				MetaId: task.Meta.MetaId,
 				Time:   task.Meta.ExecutionTime,
 			})
 		} else {
-			go tm.assignTask(id, task.Meta.TaskFn)
+			go tm.assignTask(id, task.Meta.MetaId, task.TaskFn)
 		}
 	}
 }
 
-func (tm *TaskManager) assignTask(idTask string, taskFn func()) {
-	fn := func() {
-		taskFn()
+func (tm *TaskManager) assignTask(idTask string, metaId string, taskFn func(metaId string)) {
+	fn := func(metaId string) {
+		taskFn(metaId)
 		tm.postgClient.UpdateTaskComplete(idTask)
 	}
-	tm.taskActor.SubmitTask(fn)
+	tsk := model.ActorTask{
+		MetaId: metaId,
+		TaskFn: fn,
+	}
+	tm.taskActor.SubmitTask(tsk)
 }
 
 func (tm *TaskManager) delayTaskTicker() {
@@ -92,7 +97,7 @@ func (tm *TaskManager) delayTaskTicker() {
 			if taskI != nil {
 				task := taskI.(*DelayTask)
 				if task.Time-time.Now().Unix() <= 0 {
-					go tm.assignTask(task.IdTask, task.TaskFn)
+					go tm.assignTask(task.IdTask, task.MetaId, task.TaskFn)
 				} else {
 					tm.priorityQueue.Push(task)
 				}

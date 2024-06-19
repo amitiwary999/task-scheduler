@@ -2,7 +2,8 @@ package manager
 
 type DelayTask struct {
 	IdTask string
-	TaskFn func()
+	MetaId string
+	TaskFn func(string)
 	Time   int64
 }
 
