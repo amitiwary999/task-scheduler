@@ -3,13 +3,9 @@ package model
 import "encoding/json"
 
 type TaskMeta struct {
-	TaskId        string `json:"taskId"`
-	TaskType      string `json:"taskType"`
-	MaxRetry      int    `json:"maxRetry"`
-	Action        string `json:"action"`
-	ServerId      string `json:"serverId,omitempty"`
-	Delay         int    `json:"delay,omitempty"`
-	ExecutionTime int64  `json:"executionTime,omitempty"`
+	Delay         int   `json:"delay,omitempty"`
+	ExecutionTime int64 `json:"executionTime,omitempty"`
+	TaskFn        func()
 }
 
 type Task struct {

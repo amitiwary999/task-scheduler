@@ -1,9 +1,9 @@
 package manager
 
 type DelayTask struct {
-	IdTask   string
-	TaskType string
-	Time     int64
+	IdTask string
+	TaskFn func()
+	Time   int64
 }
 
 type PriorityQueue []*DelayTask
