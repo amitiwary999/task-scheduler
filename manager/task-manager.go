@@ -3,7 +3,6 @@ package manager
 import (
 	"container/heap"
 	"fmt"
-	"sync"
 	"time"
 
 	model "github.com/amitiwary999/task-scheduler/model"
@@ -11,20 +10,13 @@ import (
 )
 
 type TaskManager struct {
-	tasksWeight         map[string]model.TaskWeight
-	servers             map[string]*model.Servers
-	consumer            util.AMQPConsumer
-	producer            util.AMQPProducer
-	postgClient         util.PostgClient
-	ReceiveTask         chan []byte
-	ReceiveCompleteTask chan []byte
-	serverJoin          chan []byte
-	done                chan int
-	lock                sync.Mutex
-	priorityQueue       PriorityQueue
+	postgClient   util.PostgClient
+	taskActor     *TaskActor
+	done          chan int
+	priorityQueue PriorityQueue
 }
 
-func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, postgClient util.PostgClient, done chan int) *TaskManager {
+func InitManager(postgClient util.PostgClient, taskActor *TaskActor, done chan int) *TaskManager {
 	servers := make(map[string]*model.Servers)
 	tasksWeight := make(map[string]model.TaskWeight)
 
@@ -49,29 +41,15 @@ func InitManager(consumer util.AMQPConsumer, producer util.AMQPProducer, postgCl
 	}
 
 	return &TaskManager{
-		tasksWeight:         tasksWeight,
-		servers:             servers,
-		producer:            producer,
-		consumer:            consumer,
-		postgClient:         postgClient,
-		ReceiveTask:         make(chan []byte),
-		ReceiveCompleteTask: make(chan []byte),
-		serverJoin:          make(chan []byte),
-		done:                done,
-		priorityQueue:       make(PriorityQueue, 0),
+		postgClient:   postgClient,
+		taskActor:     taskActor,
+		done:          done,
+		priorityQueue: make(PriorityQueue, 0),
 	}
 }
 
 func (tm *TaskManager) StartManager() {
-	key := util.RABBITMQ_EXCHANGE_KEY
-	queueName := util.RABBITMQ_TASK_QUEUE
-	completeTaskKey := util.RABBITMQ_COMPLETE_TASK_EXCHANGE_KEY
-	taskCompleteQueue := util.RABBITMQ_TASK_COMPLETE_QUEUE
 	heap.Init(&tm.priorityQueue)
-	go tm.consumer.Handle(tm.ReceiveTask, queueName, key, util.TaskConsumerTag)
-	go tm.consumer.Handle(tm.ReceiveCompleteTask, taskCompleteQueue, completeTaskKey, util.CompleteTaskConsumerTag)
-	go tm.consumer.ServerJoinHandle(tm.serverJoin, util.NewServerJoinTag)
-	go tm.assignPendingTasks()
 	go tm.delayTaskTicker()
 }
 
@@ -100,6 +78,7 @@ func (tm *TaskManager) assignTask(idTask string, taskFn func()) {
 		taskFn()
 		tm.postgClient.UpdateTaskComplete(idTask)
 	}
+	tm.taskActor.SubmitTask(fn)
 }
 
 func (tm *TaskManager) delayTaskTicker() {
@@ -119,13 +98,5 @@ func (tm *TaskManager) delayTaskTicker() {
 				}
 			}
 		}
-	}
-}
-
-func (tm *TaskManager) assignPendingTasks() {
-	pendingTasks, error := tm.postgClient.GetPendingTask()
-	if error != nil {
-		fmt.Printf("failed top fetch the pending tasks %v\n", error)
-	} else {
 	}
 }

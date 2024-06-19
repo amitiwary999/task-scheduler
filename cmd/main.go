@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("error in the string conversion pool limit %v", err)
 	} else {
-		tsk := scheduler.NewTaskScheduler(os.Getenv("RABBITMQ_URL"), os.Getenv("POSTGRES_URL"), int16(poolLimit))
+		tsk := scheduler.NewTaskScheduler(os.Getenv("RABBITMQ_URL"), os.Getenv("POSTGRES_URL"), int16(poolLimit), 10, 10000)
 		tsk.StartScheduler()
 	}
 }
