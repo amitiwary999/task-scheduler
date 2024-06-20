@@ -1,11 +1,7 @@
 package scheduler
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
 	manager "github.com/amitiwary999/task-scheduler/manager"
 	model "github.com/amitiwary999/task-scheduler/model"
@@ -13,17 +9,17 @@ import (
 )
 
 type TaskScheduler struct {
-	RabbitmqUrl   string
 	PostgUrl      string
 	PoolLimit     int16
 	maxTaskWorker uint16
 	taskQueueSize uint16
+	done          chan int
 	taskM         *manager.TaskManager
 }
 
-func NewTaskScheduler(rabbitmqUrl, postgUrl string, poolLimit int16, maxTaskWorker uint16, taskQueueSize uint16) *TaskScheduler {
+func NewTaskScheduler(done chan int, postgUrl string, poolLimit int16, maxTaskWorker uint16, taskQueueSize uint16) *TaskScheduler {
 	return &TaskScheduler{
-		RabbitmqUrl:   rabbitmqUrl,
+		done:          done,
 		PostgUrl:      postgUrl,
 		PoolLimit:     poolLimit,
 		maxTaskWorker: maxTaskWorker,
@@ -32,29 +28,17 @@ func NewTaskScheduler(rabbitmqUrl, postgUrl string, poolLimit int16, maxTaskWork
 }
 
 func (t *TaskScheduler) StartScheduler() {
-	gracefulShutdown := make(chan os.Signal, 1)
-	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
-	done := make(chan int)
 	postgClient, error := storage.NewPostgresClient(t.PostgUrl, t.PoolLimit)
-	ta := manager.NewTaskActor(t.maxTaskWorker, done, t.taskQueueSize)
+	ta := manager.NewTaskActor(t.maxTaskWorker, t.done, t.taskQueueSize)
 	if error != nil {
 		fmt.Printf("postgres cient failed %v\n", error)
 	}
-	taskM := manager.InitManager(postgClient, ta, done)
+	taskM := manager.InitManager(postgClient, ta, t.done)
 	t.taskM = taskM
 	taskM.StartManager()
-
-	<-gracefulShutdown
-	close(done)
 }
 
-func (t *TaskScheduler) AddNewTask(taskData []byte) error {
-	var task model.Task
-	err := json.Unmarshal(taskData, &task)
-	if err != nil {
-		return err
-	} else {
-		t.taskM.AddNewTask(&task)
-		return nil
-	}
+func (t *TaskScheduler) AddNewTask(task model.Task) error {
+	t.taskM.AddNewTask(&task)
+	return nil
 }

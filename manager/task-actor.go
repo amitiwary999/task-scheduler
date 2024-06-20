@@ -33,7 +33,7 @@ ExitLoop:
 		select {
 		case taskF, ok := <-ta.taskChan:
 			if !ok {
-				break
+				break ExitLoop
 			}
 			if workerCount < ta.maxWorker {
 				go ta.DoAction(taskF)
