@@ -12,8 +12,10 @@ import ("github.com/amitiwary999/task-scheduler/scheduler")
 tsk := scheduler.NewTaskScheduler(doneChannel, postgresUrl, poolLimit, workerCount, taskQueueLimit)
 go tsk.StartScheduler()
 meta := model.TaskMeta{
-				MetaId: id,
-			}
+	MetaId: id,
+    Delay: intValue(after how much delay task need to perform, optional)
+    ExecutionTime: intValue(at what time need to perform task, optional)
+}
 mdlTsk := model.Task{
     Meta:   meta,
     TaskFn: fn,
@@ -22,3 +24,4 @@ tsk.AddNewTask(mdlTsk)
 ```
 
 When task is added it is added in taskQueue and worker fetch the task from this queue and perform it. Maximum workerCount number of worker use to perform task.
+Postgres is use to save the task (metaId, delay, execution time, status) and once task is complete status is changed to complete. This helps if an assigned task is not performed successfully then on next server start fetch the task from database and add it to queue.
