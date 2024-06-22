@@ -53,7 +53,7 @@ func (tm *TaskManager) StartManager() {
 	go tm.delayTaskTicker()
 }
 
-func (tm *TaskManager) AddNewTask(task *model.Task) {
+func (tm *TaskManager) AddNewTask(task model.Task) {
 	if task.Meta.Delay > 0 {
 		task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
 	}
@@ -61,10 +61,9 @@ func (tm *TaskManager) AddNewTask(task *model.Task) {
 	if err != nil {
 		fmt.Printf("failed to save the task %v\n", err)
 	} else {
-		task.Id = id
 		if task.Meta.ExecutionTime > 0 {
 			tm.priorityQueue.Push(&DelayTask{
-				IdTask: task.Id,
+				IdTask: id,
 				MetaId: task.Meta.MetaId,
 				Time:   task.Meta.ExecutionTime,
 			})
