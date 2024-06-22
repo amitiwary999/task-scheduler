@@ -90,6 +90,7 @@ func (tm *TaskManager) delayTaskTicker() {
 	for {
 		select {
 		case <-tm.done:
+			ticker.Stop()
 			return
 		case <-ticker.C:
 			taskI := tm.priorityQueue.Pop()

@@ -1,8 +1,12 @@
 package manager
 
 import (
+	"time"
+
 	model "github.com/amitiwary999/task-scheduler/model"
 )
+
+var stopTaskActor bool = true
 
 type TaskActor struct {
 	maxWorker uint16
@@ -23,10 +27,12 @@ func NewTaskActor(maxWorker uint16, done chan int, tasksSize uint16) *TaskActor 
 }
 
 func (ta *TaskActor) SubmitTask(tsk model.ActorTask) {
+	stopTaskActor = false
 	ta.taskChan <- tsk
 }
 
 func (ta *TaskActor) Dispatch() {
+	ticker := time.NewTicker(10 * time.Second)
 	var workerCount uint16 = 0
 ExitLoop:
 	for {
@@ -41,6 +47,19 @@ ExitLoop:
 			} else {
 				ta.taskQueue <- taskF
 			}
+		case <-ticker.C:
+			if stopTaskActor {
+				actr := model.ActorTask{
+					MetaId: "",
+					TaskFn: nil,
+				}
+				for workerCount > 0 {
+					ta.taskQueue <- actr
+					workerCount--
+				}
+				ticker.Stop()
+			}
+			stopTaskActor = true
 		case <-ta.done:
 			break ExitLoop
 		}
@@ -51,6 +70,9 @@ func (ta *TaskActor) DoAction(tsk model.ActorTask) {
 	task := tsk
 ExitLoop:
 	for {
+		if task.TaskFn == nil {
+			break ExitLoop
+		}
 		task.TaskFn(task.MetaId)
 		select {
 		case task = <-ta.taskQueue:
