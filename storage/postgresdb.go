@@ -68,11 +68,11 @@ func (db *PostgresDbClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	return id, nil
 }
 
-func (db *PostgresDbClient) UpdateTaskComplete(id string) error {
+func (db *PostgresDbClient) UpdateTaskStatus(id, status string) error {
 	query := "UPDATE jobdetail SET status = $1 WHERE id = $2"
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
-	_, err := db.DB.ExecContext(ctx, query, "completed", id)
+	_, err := db.DB.ExecContext(ctx, query, status, id)
 	return err
 }
 

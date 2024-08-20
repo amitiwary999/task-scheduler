@@ -73,10 +73,14 @@ func (tm *TaskManager) AddNewTask(task model.Task) {
 	}
 }
 
-func (tm *TaskManager) assignTask(idTask string, metaId string, taskFn func(metaId string)) {
+func (tm *TaskManager) assignTask(idTask string, metaId string, taskFn func(metaId string) error) {
 	fn := func(metaId string) {
-		taskFn(metaId)
-		tm.postgClient.UpdateTaskComplete(idTask)
+		err := taskFn(metaId)
+		taskStatus := "completed"
+		if err != nil {
+			taskStatus = "failed"
+		}
+		tm.postgClient.UpdateTaskStatus(idTask, taskStatus)
 	}
 	tsk := model.ActorTask{
 		MetaId: metaId,

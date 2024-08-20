@@ -61,6 +61,8 @@ ExitLoop:
 			}
 			stopTaskActor = true
 		case <-ta.done:
+			close(ta.taskChan)
+			close(ta.taskQueue)
 			break ExitLoop
 		}
 	}

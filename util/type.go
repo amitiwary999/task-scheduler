@@ -17,7 +17,7 @@ type AMQPProducer interface {
 
 type SupabaseClient interface {
 	SaveTask(meta *model.TaskMeta) (string, error)
-	UpdateTaskComplete(id string) error
+	UpdateTaskStatus(id, status string) error
 	GetAllUsedServer() ([]byte, error)
 	GetTaskConfig() ([]byte, error)
 	GetPendingTask() ([]byte, error)
@@ -25,7 +25,7 @@ type SupabaseClient interface {
 
 type PostgClient interface {
 	SaveTask(meta *model.TaskMeta) (string, error)
-	UpdateTaskComplete(id string) error
+	UpdateTaskStatus(id, status string) error
 	GetAllUsedServer() ([]model.JoinData, error)
 	GetTaskConfig() ([]model.TaskWeight, error)
 	GetPendingTask() ([]model.PendingTask, error)

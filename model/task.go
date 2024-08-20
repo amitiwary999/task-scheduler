@@ -11,7 +11,7 @@ type TaskMeta struct {
 type Task struct {
 	Meta   TaskMeta `json:"meta"`
 	Id     string   `json:"id,omitempty"`
-	TaskFn func(string)
+	TaskFn func(string) error
 }
 
 type CompleteTask struct {

@@ -14,10 +14,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func generateFunc() func(string) {
-	return func(metaId string) {
+func generateFunc() func(string) error {
+	return func(metaId string) error {
 		time.Sleep(time.Duration(time.Second * 1))
 		fmt.Printf("task with id %v completed \n", metaId)
+		return nil
 	}
 }
 
