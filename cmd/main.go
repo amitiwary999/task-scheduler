@@ -35,7 +35,10 @@ func main() {
 		gracefulShutdown := make(chan os.Signal, 1)
 		signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
 		tsk := scheduler.NewTaskScheduler(done, os.Getenv("POSTGRES_URL"), int16(poolLimit), 10, 10000)
-		go tsk.StartScheduler()
+		err := tsk.StartScheduler()
+		if err != nil {
+			return
+		}
 		time.Sleep(time.Duration(time.Second * 3))
 		for i := 0; i < 1000; i++ {
 			fn := generateFunc()

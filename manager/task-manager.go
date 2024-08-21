@@ -17,29 +17,6 @@ type TaskManager struct {
 }
 
 func InitManager(postgClient util.PostgClient, taskActor *TaskActor, done chan int) *TaskManager {
-	servers := make(map[string]*model.Servers)
-	tasksWeight := make(map[string]model.TaskWeight)
-
-	var taskWeightConfig []model.TaskWeight
-	taskWeightConfig, _ = postgClient.GetTaskConfig()
-	for _, taskWeight := range taskWeightConfig {
-		tasksWeight[taskWeight.Type] = taskWeight
-	}
-
-	serversJoinData, serversErr := postgClient.GetAllUsedServer()
-
-	if serversErr != nil {
-		fmt.Printf("error in get all used servers %v\n", serversErr)
-	} else {
-		for _, serverJonData := range serversJoinData {
-			server := model.Servers{
-				Id:   serverJonData.ServerId,
-				Load: 0,
-			}
-			servers[serverJonData.ServerId] = &server
-		}
-	}
-
 	return &TaskManager{
 		postgClient:   postgClient,
 		taskActor:     taskActor,
@@ -76,9 +53,9 @@ func (tm *TaskManager) AddNewTask(task model.Task) {
 func (tm *TaskManager) assignTask(idTask string, metaId string, taskFn func(metaId string) error) {
 	fn := func(metaId string) {
 		err := taskFn(metaId)
-		taskStatus := "completed"
+		taskStatus := util.JOB_DETAIL_STATUS_COMPLETED
 		if err != nil {
-			taskStatus = "failed"
+			taskStatus = util.JOB_DETAIL_STATUS_FAILED
 		}
 		tm.postgClient.UpdateTaskStatus(idTask, taskStatus)
 	}

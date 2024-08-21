@@ -27,15 +27,17 @@ func NewTaskScheduler(done chan int, postgUrl string, poolLimit int16, maxTaskWo
 	}
 }
 
-func (t *TaskScheduler) StartScheduler() {
+func (t *TaskScheduler) StartScheduler() error {
 	postgClient, error := storage.NewPostgresClient(t.PostgUrl, t.PoolLimit)
-	ta := manager.NewTaskActor(t.maxTaskWorker, t.done, t.taskQueueSize)
 	if error != nil {
 		fmt.Printf("postgres cient failed %v\n", error)
+		return error
 	}
+	ta := manager.NewTaskActor(t.maxTaskWorker, t.done, t.taskQueueSize)
 	taskM := manager.InitManager(postgClient, ta, t.done)
 	t.taskM = taskM
 	taskM.StartManager()
+	return nil
 }
 
 func (t *TaskScheduler) AddNewTask(task model.Task) error {

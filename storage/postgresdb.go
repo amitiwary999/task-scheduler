@@ -80,7 +80,7 @@ func (db *PostgresDbClient) GetPendingTask() ([]model.PendingTask, error) {
 	query := "SELECT id, meta FROM jobdetail WHERE status = $1"
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
-	rows, err := db.DB.QueryContext(ctx, query, "pending")
+	rows, err := db.DB.QueryContext(ctx, query, util.JOB_DETAIL_STATUS_PENDING)
 	if err != nil {
 		return nil, err
 	}
