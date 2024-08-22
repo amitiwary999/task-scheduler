@@ -29,6 +29,7 @@ func InitManager(postgClient util.PostgClient, taskActor *TaskActor, funcGenerat
 func (tm *TaskManager) StartManager() {
 	heap.Init(&tm.priorityQueue)
 	go tm.delayTaskTicker()
+	go tm.retryFailedTask()
 }
 
 func (tm *TaskManager) AddNewTask(task model.Task) {
@@ -83,6 +84,26 @@ func (tm *TaskManager) delayTaskTicker() {
 				} else {
 					tm.priorityQueue.Push(task)
 				}
+			}
+		}
+	}
+}
+
+func (tm *TaskManager) retryFailedTask() {
+	ticker := time.NewTicker(12 * time.Hour)
+	for {
+		select {
+		case <-tm.done:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			tsks, err := tm.postgClient.GetFailTask()
+			if err != nil {
+				for _, tsk := range tsks {
+					go tm.assignTask(tsk.Id, tsk.Meta.MetaId)
+				}
+			} else {
+				fmt.Printf("error to fetch failed task %v \n", err)
 			}
 		}
 	}
