@@ -14,9 +14,10 @@ type TaskManager struct {
 	taskActor     *TaskActor
 	done          chan int
 	priorityQueue PriorityQueue
+	funcGenerator func() func(string) error
 }
 
-func InitManager(postgClient util.PostgClient, taskActor *TaskActor, done chan int) *TaskManager {
+func InitManager(postgClient util.PostgClient, taskActor *TaskActor, funcGenerator func() func(string) error, done chan int) *TaskManager {
 	return &TaskManager{
 		postgClient:   postgClient,
 		taskActor:     taskActor,

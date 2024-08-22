@@ -34,7 +34,15 @@ func main() {
 		done := make(chan int)
 		gracefulShutdown := make(chan os.Signal, 1)
 		signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
-		tsk := scheduler.NewTaskScheduler(done, os.Getenv("POSTGRES_URL"), int16(poolLimit), 10, 10000)
+		tconf := &scheduler.TaskConfig{
+			PostgUrl:      os.Getenv("POSTGRES_URL"),
+			PoolLimit:     int16(poolLimit),
+			MaxTaskWorker: 10,
+			TaskQueueSize: 10000,
+			Done:          done,
+			FuncGenerator: generateFunc,
+		}
+		tsk := scheduler.NewTaskScheduler(tconf)
 		err := tsk.StartScheduler()
 		if err != nil {
 			return
