@@ -49,14 +49,12 @@ func main() {
 		}
 		time.Sleep(time.Duration(time.Second * 3))
 		for i := 0; i < 1000; i++ {
-			fn := generateFunc()
 			id := fmt.Sprintf("task_%v", i)
 			meta := model.TaskMeta{
 				MetaId: id,
 			}
 			mdlTsk := model.Task{
-				Meta:   meta,
-				TaskFn: fn,
+				Meta: meta,
 			}
 			tsk.AddNewTask(mdlTsk)
 		}

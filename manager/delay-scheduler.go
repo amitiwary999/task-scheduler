@@ -3,7 +3,6 @@ package manager
 type DelayTask struct {
 	IdTask string
 	MetaId string
-	TaskFn func(string) error
 	Time   int64
 }
 

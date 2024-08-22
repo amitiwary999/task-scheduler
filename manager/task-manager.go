@@ -46,14 +46,14 @@ func (tm *TaskManager) AddNewTask(task model.Task) {
 				Time:   task.Meta.ExecutionTime,
 			})
 		} else {
-			go tm.assignTask(id, task.Meta.MetaId, task.TaskFn)
+			go tm.assignTask(id, task.Meta.MetaId)
 		}
 	}
 }
 
-func (tm *TaskManager) assignTask(idTask string, metaId string, taskFn func(metaId string) error) {
+func (tm *TaskManager) assignTask(idTask string, metaId string) {
 	fn := func(metaId string) {
-		err := taskFn(metaId)
+		err := tm.funcGenerator()(metaId)
 		taskStatus := util.JOB_DETAIL_STATUS_COMPLETED
 		if err != nil {
 			taskStatus = util.JOB_DETAIL_STATUS_FAILED
@@ -79,7 +79,7 @@ func (tm *TaskManager) delayTaskTicker() {
 			if taskI != nil {
 				task := taskI.(*DelayTask)
 				if task.Time-time.Now().Unix() <= 0 {
-					go tm.assignTask(task.IdTask, task.MetaId, task.TaskFn)
+					go tm.assignTask(task.IdTask, task.MetaId)
 				} else {
 					tm.priorityQueue.Push(task)
 				}
