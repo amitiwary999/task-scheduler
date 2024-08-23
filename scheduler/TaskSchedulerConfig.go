@@ -11,6 +11,7 @@ import (
 type TaskConfig struct {
 	PostgUrl      string
 	PoolLimit     int16
+	JobTableName  string
 	MaxTaskWorker uint16
 	TaskQueueSize uint16
 	Done          chan int
@@ -18,10 +19,11 @@ type TaskConfig struct {
 }
 
 type TaskScheduler struct {
-	PostgUrl      string
-	PoolLimit     int16
+	postgUrl      string
+	poolLimit     int16
 	maxTaskWorker uint16
 	taskQueueSize uint16
+	jobTableName  string
 	funcGenerator func() func(string) error
 	done          chan int
 	taskM         *manager.TaskManager
@@ -30,19 +32,25 @@ type TaskScheduler struct {
 func NewTaskScheduler(tconf *TaskConfig) *TaskScheduler {
 	return &TaskScheduler{
 		done:          tconf.Done,
-		PostgUrl:      tconf.PostgUrl,
-		PoolLimit:     tconf.PoolLimit,
+		postgUrl:      tconf.PostgUrl,
+		poolLimit:     tconf.PoolLimit,
 		maxTaskWorker: tconf.MaxTaskWorker,
 		taskQueueSize: tconf.TaskQueueSize,
+		jobTableName:  tconf.JobTableName,
 		funcGenerator: tconf.FuncGenerator,
 	}
 }
 
 func (t *TaskScheduler) StartScheduler() error {
-	postgClient, error := storage.NewPostgresClient(t.PostgUrl, t.PoolLimit)
+	postgClient, error := storage.NewPostgresClient(t.postgUrl, t.poolLimit, t.jobTableName)
 	if error != nil {
 		fmt.Printf("postgres cient failed %v\n", error)
 		return error
+	}
+	err := postgClient.CreateJobTable()
+	if err != nil {
+		fmt.Printf("failed to create the table to save job details %v \n", err)
+		return err
 	}
 	ta := manager.NewTaskActor(t.maxTaskWorker, t.done, t.taskQueueSize)
 	taskM := manager.InitManager(postgClient, ta, t.funcGenerator, t.done)

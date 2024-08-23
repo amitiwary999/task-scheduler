@@ -39,6 +39,7 @@ func main() {
 			PoolLimit:     int16(poolLimit),
 			MaxTaskWorker: 10,
 			TaskQueueSize: 10000,
+			JobTableName:  "jobdetail",
 			Done:          done,
 			FuncGenerator: generateFunc,
 		}

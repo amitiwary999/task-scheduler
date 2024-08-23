@@ -21,6 +21,7 @@ func InitManager(postgClient util.PostgClient, taskActor *TaskActor, funcGenerat
 	return &TaskManager{
 		postgClient:   postgClient,
 		taskActor:     taskActor,
+		funcGenerator: funcGenerator,
 		done:          done,
 		priorityQueue: make(PriorityQueue, 0),
 	}
