@@ -6,21 +6,23 @@ type TaskMeta struct {
 	MetaId        string `json:"metaId"`
 	Delay         int    `json:"delay,omitempty"`
 	ExecutionTime int64  `json:"executionTime,omitempty"`
+	Retry         int    `json:"retry,omitempty"`
 }
 
 type Task struct {
-	Meta TaskMeta `json:"meta"`
-	Id   string   `json:"id,omitempty"`
-}
-
-type CompleteTask struct {
-	Id   string   `json:"id"`
-	Meta TaskMeta `json:"meta"`
+	Meta *TaskMeta `json:"meta"`
+	Id   string    `json:"id,omitempty"`
 }
 
 type PendingTask struct {
-	Id   string   `json:"id"`
-	Meta TaskMeta `json:"meta"`
+	Id   string    `json:"id"`
+	Meta *TaskMeta `json:"meta"`
+}
+
+type DelayTask struct {
+	IdTask string
+	Meta   *TaskMeta
+	Time   int64
 }
 
 type Servers struct {
@@ -43,8 +45,8 @@ type TaskStatus struct {
 }
 
 type ActorTask struct {
-	MetaId string
-	TaskFn func(metaId string)
+	Meta   *TaskMeta
+	TaskFn func(meta *TaskMeta)
 }
 
 type JoinData struct {
@@ -53,5 +55,13 @@ type JoinData struct {
 }
 
 func (m *TaskMeta) Scan(value interface{}) error {
-	return json.Unmarshal(value.([]byte), m)
+	type DefaultTskMeta TaskMeta
+	defaultTskMeta := &DefaultTskMeta{
+		Retry: 3,
+	}
+	if err := json.Unmarshal(value.([]byte), defaultTskMeta); err != nil {
+		return err
+	}
+	*m = TaskMeta(*defaultTskMeta)
+	return nil
 }

@@ -50,7 +50,7 @@ ExitLoop:
 		case <-ticker.C:
 			if stopTaskActor {
 				actr := model.ActorTask{
-					MetaId: "",
+					Meta:   nil,
 					TaskFn: nil,
 				}
 				for workerCount > 0 {
@@ -75,7 +75,7 @@ ExitLoop:
 		if task.TaskFn == nil {
 			break ExitLoop
 		}
-		task.TaskFn(task.MetaId)
+		task.TaskFn(task.Meta)
 		select {
 		case task = <-ta.taskQueue:
 		case <-ta.done:

@@ -43,7 +43,6 @@ func (pgdb *PostgresDbClient) CreateJobTable() error {
 	(
 		id             varchar(50)                           NOT NULL PRIMARY KEY,
 	    meta           JSONB                                 NOT NULL,
-		retryCount     INTEGER     DEFAULT 3                 NOT NULL,
 		status         varchar(20) DEFAULT 'pending'         NOT NULL,
 		created_at     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 	);

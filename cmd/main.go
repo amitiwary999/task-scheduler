@@ -14,10 +14,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func generateFunc() func(string) error {
-	return func(metaId string) error {
+func generateFunc() func(*model.TaskMeta) error {
+	return func(meta *model.TaskMeta) error {
 		time.Sleep(time.Duration(time.Second * 1))
-		fmt.Printf("task with id %v completed \n", metaId)
+		fmt.Printf("task with id %v completed \n", meta.MetaId)
 		return nil
 	}
 }
@@ -51,7 +51,7 @@ func main() {
 		time.Sleep(time.Duration(time.Second * 3))
 		for i := 0; i < 1000; i++ {
 			id := fmt.Sprintf("task_%v", i)
-			meta := model.TaskMeta{
+			meta := &model.TaskMeta{
 				MetaId: id,
 			}
 			mdlTsk := model.Task{

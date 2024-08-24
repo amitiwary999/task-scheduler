@@ -15,7 +15,7 @@ type TaskConfig struct {
 	MaxTaskWorker uint16
 	TaskQueueSize uint16
 	Done          chan int
-	FuncGenerator func() func(string) error
+	FuncGenerator func() func(*model.TaskMeta) error
 }
 
 type TaskScheduler struct {
@@ -24,7 +24,7 @@ type TaskScheduler struct {
 	maxTaskWorker uint16
 	taskQueueSize uint16
 	jobTableName  string
-	funcGenerator func() func(string) error
+	funcGenerator func() func(*model.TaskMeta) error
 	done          chan int
 	taskM         *manager.TaskManager
 }

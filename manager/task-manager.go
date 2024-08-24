@@ -14,10 +14,10 @@ type TaskManager struct {
 	taskActor     *TaskActor
 	done          chan int
 	priorityQueue PriorityQueue
-	funcGenerator func() func(string) error
+	funcGenerator func() func(*model.TaskMeta) error
 }
 
-func InitManager(postgClient util.PostgClient, taskActor *TaskActor, funcGenerator func() func(string) error, done chan int) *TaskManager {
+func InitManager(postgClient util.PostgClient, taskActor *TaskActor, funcGenerator func() func(*model.TaskMeta) error, done chan int) *TaskManager {
 	return &TaskManager{
 		postgClient:   postgClient,
 		taskActor:     taskActor,
@@ -37,25 +37,25 @@ func (tm *TaskManager) AddNewTask(task model.Task) {
 	if task.Meta.Delay > 0 {
 		task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
 	}
-	id, err := tm.postgClient.SaveTask(&task.Meta)
+	id, err := tm.postgClient.SaveTask(task.Meta)
 	if err != nil {
 		fmt.Printf("failed to save the task %v\n", err)
 	} else {
 		if task.Meta.ExecutionTime > 0 {
-			tm.priorityQueue.Push(&DelayTask{
+			tm.priorityQueue.Push(&model.DelayTask{
 				IdTask: id,
-				MetaId: task.Meta.MetaId,
+				Meta:   task.Meta,
 				Time:   task.Meta.ExecutionTime,
 			})
 		} else {
-			go tm.assignTask(id, task.Meta.MetaId)
+			go tm.assignTask(id, task.Meta)
 		}
 	}
 }
 
-func (tm *TaskManager) assignTask(idTask string, metaId string) {
-	fn := func(metaId string) {
-		err := tm.funcGenerator()(metaId)
+func (tm *TaskManager) assignTask(idTask string, meta *model.TaskMeta) {
+	fn := func(meta *model.TaskMeta) {
+		err := tm.funcGenerator()(meta)
 		taskStatus := util.JOB_DETAIL_STATUS_COMPLETED
 		if err != nil {
 			taskStatus = util.JOB_DETAIL_STATUS_FAILED
@@ -63,7 +63,7 @@ func (tm *TaskManager) assignTask(idTask string, metaId string) {
 		tm.postgClient.UpdateTaskStatus(idTask, taskStatus)
 	}
 	tsk := model.ActorTask{
-		MetaId: metaId,
+		Meta:   meta,
 		TaskFn: fn,
 	}
 	tm.taskActor.SubmitTask(tsk)
@@ -79,9 +79,9 @@ func (tm *TaskManager) delayTaskTicker() {
 		case <-ticker.C:
 			taskI := tm.priorityQueue.Pop()
 			if taskI != nil {
-				task := taskI.(*DelayTask)
+				task := taskI.(*model.DelayTask)
 				if task.Time-time.Now().Unix() <= 0 {
-					go tm.assignTask(task.IdTask, task.MetaId)
+					go tm.assignTask(task.IdTask, task.Meta)
 				} else {
 					tm.priorityQueue.Push(task)
 				}
@@ -101,7 +101,7 @@ func (tm *TaskManager) retryFailedTask() {
 			tsks, err := tm.postgClient.GetFailTask()
 			if err != nil {
 				for _, tsk := range tsks {
-					go tm.assignTask(tsk.Id, tsk.Meta.MetaId)
+					go tm.assignTask(tsk.Id, tsk.Meta)
 				}
 			} else {
 				fmt.Printf("error to fetch failed task %v \n", err)
