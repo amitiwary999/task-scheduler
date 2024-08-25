@@ -14,35 +14,14 @@ type TaskManager struct {
 	taskActor     *TaskActor
 	done          chan int
 	priorityQueue PriorityQueue
+	funcGenerator func() func(*model.TaskMeta) error
 }
 
-func InitManager(postgClient util.PostgClient, taskActor *TaskActor, done chan int) *TaskManager {
-	servers := make(map[string]*model.Servers)
-	tasksWeight := make(map[string]model.TaskWeight)
-
-	var taskWeightConfig []model.TaskWeight
-	taskWeightConfig, _ = postgClient.GetTaskConfig()
-	for _, taskWeight := range taskWeightConfig {
-		tasksWeight[taskWeight.Type] = taskWeight
-	}
-
-	serversJoinData, serversErr := postgClient.GetAllUsedServer()
-
-	if serversErr != nil {
-		fmt.Printf("error in get all used servers %v\n", serversErr)
-	} else {
-		for _, serverJonData := range serversJoinData {
-			server := model.Servers{
-				Id:   serverJonData.ServerId,
-				Load: 0,
-			}
-			servers[serverJonData.ServerId] = &server
-		}
-	}
-
+func InitManager(postgClient util.PostgClient, taskActor *TaskActor, funcGenerator func() func(*model.TaskMeta) error, done chan int) *TaskManager {
 	return &TaskManager{
 		postgClient:   postgClient,
 		taskActor:     taskActor,
+		funcGenerator: funcGenerator,
 		done:          done,
 		priorityQueue: make(PriorityQueue, 0),
 	}
@@ -51,39 +30,40 @@ func InitManager(postgClient util.PostgClient, taskActor *TaskActor, done chan i
 func (tm *TaskManager) StartManager() {
 	heap.Init(&tm.priorityQueue)
 	go tm.delayTaskTicker()
+	go tm.retryFailedTask()
 }
 
 func (tm *TaskManager) AddNewTask(task model.Task) {
 	if task.Meta.Delay > 0 {
 		task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
 	}
-	id, err := tm.postgClient.SaveTask(&task.Meta)
+	id, err := tm.postgClient.SaveTask(task.Meta)
 	if err != nil {
 		fmt.Printf("failed to save the task %v\n", err)
 	} else {
 		if task.Meta.ExecutionTime > 0 {
-			tm.priorityQueue.Push(&DelayTask{
+			tm.priorityQueue.Push(&model.DelayTask{
 				IdTask: id,
-				MetaId: task.Meta.MetaId,
+				Meta:   task.Meta,
 				Time:   task.Meta.ExecutionTime,
 			})
 		} else {
-			go tm.assignTask(id, task.Meta.MetaId, task.TaskFn)
+			go tm.assignTask(id, task.Meta)
 		}
 	}
 }
 
-func (tm *TaskManager) assignTask(idTask string, metaId string, taskFn func(metaId string) error) {
-	fn := func(metaId string) {
-		err := taskFn(metaId)
-		taskStatus := "completed"
+func (tm *TaskManager) assignTask(idTask string, meta *model.TaskMeta) {
+	fn := func(meta *model.TaskMeta) {
+		err := tm.funcGenerator()(meta)
+		taskStatus := util.JOB_DETAIL_STATUS_COMPLETED
 		if err != nil {
-			taskStatus = "failed"
+			taskStatus = util.JOB_DETAIL_STATUS_FAILED
 		}
 		tm.postgClient.UpdateTaskStatus(idTask, taskStatus)
 	}
 	tsk := model.ActorTask{
-		MetaId: metaId,
+		Meta:   meta,
 		TaskFn: fn,
 	}
 	tm.taskActor.SubmitTask(tsk)
@@ -99,12 +79,32 @@ func (tm *TaskManager) delayTaskTicker() {
 		case <-ticker.C:
 			taskI := tm.priorityQueue.Pop()
 			if taskI != nil {
-				task := taskI.(*DelayTask)
+				task := taskI.(*model.DelayTask)
 				if task.Time-time.Now().Unix() <= 0 {
-					go tm.assignTask(task.IdTask, task.MetaId, task.TaskFn)
+					go tm.assignTask(task.IdTask, task.Meta)
 				} else {
 					tm.priorityQueue.Push(task)
 				}
+			}
+		}
+	}
+}
+
+func (tm *TaskManager) retryFailedTask() {
+	ticker := time.NewTicker(12 * time.Hour)
+	for {
+		select {
+		case <-tm.done:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			tsks, err := tm.postgClient.GetFailTask()
+			if err != nil {
+				for _, tsk := range tsks {
+					go tm.assignTask(tsk.Id, tsk.Meta)
+				}
+			} else {
+				fmt.Printf("error to fetch failed task %v \n", err)
 			}
 		}
 	}

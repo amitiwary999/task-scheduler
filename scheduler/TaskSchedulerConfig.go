@@ -8,34 +8,55 @@ import (
 	storage "github.com/amitiwary999/task-scheduler/storage"
 )
 
-type TaskScheduler struct {
+type TaskConfig struct {
 	PostgUrl      string
 	PoolLimit     int16
+	JobTableName  string
+	MaxTaskWorker uint16
+	TaskQueueSize uint16
+	Done          chan int
+	FuncGenerator func() func(*model.TaskMeta) error
+}
+
+type TaskScheduler struct {
+	postgUrl      string
+	poolLimit     int16
 	maxTaskWorker uint16
 	taskQueueSize uint16
+	jobTableName  string
+	funcGenerator func() func(*model.TaskMeta) error
 	done          chan int
 	taskM         *manager.TaskManager
 }
 
-func NewTaskScheduler(done chan int, postgUrl string, poolLimit int16, maxTaskWorker uint16, taskQueueSize uint16) *TaskScheduler {
+func NewTaskScheduler(tconf *TaskConfig) *TaskScheduler {
 	return &TaskScheduler{
-		done:          done,
-		PostgUrl:      postgUrl,
-		PoolLimit:     poolLimit,
-		maxTaskWorker: maxTaskWorker,
-		taskQueueSize: taskQueueSize,
+		done:          tconf.Done,
+		postgUrl:      tconf.PostgUrl,
+		poolLimit:     tconf.PoolLimit,
+		maxTaskWorker: tconf.MaxTaskWorker,
+		taskQueueSize: tconf.TaskQueueSize,
+		jobTableName:  tconf.JobTableName,
+		funcGenerator: tconf.FuncGenerator,
 	}
 }
 
-func (t *TaskScheduler) StartScheduler() {
-	postgClient, error := storage.NewPostgresClient(t.PostgUrl, t.PoolLimit)
-	ta := manager.NewTaskActor(t.maxTaskWorker, t.done, t.taskQueueSize)
+func (t *TaskScheduler) StartScheduler() error {
+	postgClient, error := storage.NewPostgresClient(t.postgUrl, t.poolLimit, t.jobTableName)
 	if error != nil {
 		fmt.Printf("postgres cient failed %v\n", error)
+		return error
 	}
-	taskM := manager.InitManager(postgClient, ta, t.done)
+	err := postgClient.CreateJobTable()
+	if err != nil {
+		fmt.Printf("failed to create the table to save job details %v \n", err)
+		return err
+	}
+	ta := manager.NewTaskActor(t.maxTaskWorker, t.done, t.taskQueueSize)
+	taskM := manager.InitManager(postgClient, ta, t.funcGenerator, t.done)
 	t.taskM = taskM
 	taskM.StartManager()
+	return nil
 }
 
 func (t *TaskScheduler) AddNewTask(task model.Task) error {

@@ -1,13 +1,10 @@
 package manager
 
-type DelayTask struct {
-	IdTask string
-	MetaId string
-	TaskFn func(string) error
-	Time   int64
-}
+import (
+	model "github.com/amitiwary999/task-scheduler/model"
+)
 
-type PriorityQueue []*DelayTask
+type PriorityQueue []*model.DelayTask
 
 func (pq PriorityQueue) Len() int { return len(pq) }
 
@@ -20,7 +17,7 @@ func (pq PriorityQueue) Swap(i, j int) {
 }
 
 func (pq *PriorityQueue) Push(task interface{}) {
-	*pq = append(*pq, task.(*DelayTask))
+	*pq = append(*pq, task.(*model.DelayTask))
 }
 
 func (pq *PriorityQueue) Pop() interface{} {
