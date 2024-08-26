@@ -10,20 +10,22 @@ import (
 )
 
 type TaskManager struct {
-	postgClient   util.PostgClient
-	taskActor     *TaskActor
-	done          chan int
-	priorityQueue PriorityQueue
-	funcGenerator func() func(*model.TaskMeta) error
+	postgClient       util.PostgClient
+	taskActor         *TaskActor
+	done              chan int
+	priorityQueue     PriorityQueue
+	retryTimeDuration time.Duration
+	funcGenerator     func() func(*model.TaskMeta) error
 }
 
-func InitManager(postgClient util.PostgClient, taskActor *TaskActor, funcGenerator func() func(*model.TaskMeta) error, done chan int) *TaskManager {
+func InitManager(postgClient util.PostgClient, taskActor *TaskActor, retryTime time.Duration, funcGenerator func() func(*model.TaskMeta) error, done chan int) *TaskManager {
 	return &TaskManager{
-		postgClient:   postgClient,
-		taskActor:     taskActor,
-		funcGenerator: funcGenerator,
-		done:          done,
-		priorityQueue: make(PriorityQueue, 0),
+		postgClient:       postgClient,
+		taskActor:         taskActor,
+		funcGenerator:     funcGenerator,
+		retryTimeDuration: retryTime,
+		done:              done,
+		priorityQueue:     make(PriorityQueue, 0),
 	}
 }
 
@@ -58,9 +60,13 @@ func (tm *TaskManager) assignTask(idTask string, meta *model.TaskMeta) {
 		err := tm.funcGenerator()(meta)
 		taskStatus := util.JOB_DETAIL_STATUS_COMPLETED
 		if err != nil {
+			if meta.Retry <= 0 {
+				return
+			}
+			meta.Retry = meta.Retry - 1
 			taskStatus = util.JOB_DETAIL_STATUS_FAILED
 		}
-		tm.postgClient.UpdateTaskStatus(idTask, taskStatus)
+		tm.postgClient.UpdateTaskStatus(idTask, taskStatus, *meta)
 	}
 	tsk := model.ActorTask{
 		Meta:   meta,
@@ -91,7 +97,7 @@ func (tm *TaskManager) delayTaskTicker() {
 }
 
 func (tm *TaskManager) retryFailedTask() {
-	ticker := time.NewTicker(12 * time.Hour)
+	ticker := time.NewTicker(tm.retryTimeDuration)
 	for {
 		select {
 		case <-tm.done:
@@ -99,7 +105,7 @@ func (tm *TaskManager) retryFailedTask() {
 			return
 		case <-ticker.C:
 			tsks, err := tm.postgClient.GetFailTask()
-			if err != nil {
+			if err == nil {
 				for _, tsk := range tsks {
 					go tm.assignTask(tsk.Id, tsk.Meta)
 				}
