@@ -31,6 +31,7 @@ func InitManager(postgClient util.PostgClient, taskActor *TaskActor, retryTime t
 
 func (tm *TaskManager) StartManager() {
 	heap.Init(&tm.priorityQueue)
+	tm.loadPendingTask()
 	go tm.delayTaskTicker()
 	go tm.retryFailedTask()
 }
@@ -113,5 +114,16 @@ func (tm *TaskManager) retryFailedTask() {
 				fmt.Printf("error to fetch failed task %v \n", err)
 			}
 		}
+	}
+}
+
+func (tm *TaskManager) loadPendingTask() {
+	tsks, err := tm.postgClient.GetPendingTask()
+	if err == nil {
+		for _, tsk := range tsks {
+			go tm.assignTask(tsk.Id, tsk.Meta)
+		}
+	} else {
+		fmt.Printf("failed to fetch pending tasks %v \n", err)
 	}
 }
