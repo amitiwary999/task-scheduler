@@ -61,11 +61,12 @@ func (tm *TaskManager) assignTask(idTask string, meta *model.TaskMeta) {
 		err := tm.funcGenerator()(meta)
 		taskStatus := util.JOB_DETAIL_STATUS_COMPLETED
 		if err != nil {
-			if meta.Retry <= 0 {
-				return
-			}
 			meta.Retry = meta.Retry - 1
-			taskStatus = util.JOB_DETAIL_STATUS_FAILED
+			if meta.Retry <= 0 {
+				taskStatus = util.JOB_DETAIL_STATUS_DEAD
+			} else {
+				taskStatus = util.JOB_DETAIL_STATUS_FAILED
+			}
 		}
 		tm.postgClient.UpdateTaskStatus(idTask, taskStatus, *meta)
 	}
