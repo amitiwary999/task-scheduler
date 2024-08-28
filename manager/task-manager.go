@@ -36,13 +36,14 @@ func (tm *TaskManager) StartManager() {
 	go tm.retryFailedTask()
 }
 
-func (tm *TaskManager) AddNewTask(task model.Task) {
+func (tm *TaskManager) AddNewTask(task model.Task) error {
 	if task.Meta.Delay > 0 {
 		task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
 	}
 	id, err := tm.postgClient.SaveTask(task.Meta)
 	if err != nil {
 		fmt.Printf("failed to save the task %v\n", err)
+		return err
 	} else {
 		if task.Meta.ExecutionTime > 0 {
 			tm.priorityQueue.Push(&model.DelayTask{
@@ -54,6 +55,7 @@ func (tm *TaskManager) AddNewTask(task model.Task) {
 			go tm.assignTask(id, task.Meta)
 		}
 	}
+	return nil
 }
 
 func (tm *TaskManager) assignTask(idTask string, meta *model.TaskMeta) {

@@ -64,6 +64,5 @@ func (t *TaskScheduler) StartScheduler() error {
 }
 
 func (t *TaskScheduler) AddNewTask(task model.Task) error {
-	t.taskM.AddNewTask(task)
-	return nil
+	return t.taskM.AddNewTask(task)
 }
