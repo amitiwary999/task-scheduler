@@ -52,7 +52,6 @@ func (pgdb *PostgresDbClient) CreateJobTable() error {
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
 	_, err := pgdb.db.QueryContext(ctx, query)
-	fmt.Printf("query %v \n", query)
 	return err
 }
 
@@ -72,11 +71,15 @@ func (pgdb *PostgresDbClient) SaveTask(meta *model.TaskMeta) (string, error) {
 	return id, nil
 }
 
-func (pgdb *PostgresDbClient) UpdateTaskStatus(id, status string) error {
-	query := "UPDATE jobdetail SET status = $1 WHERE id = $2"
+func (pgdb *PostgresDbClient) UpdateTaskStatus(id, status string, meta model.TaskMeta) error {
+	query := "UPDATE jobdetail SET meta = $1, status = $2 WHERE id = $3"
+	metaB, err := json.Marshal(meta)
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
-	_, err := pgdb.db.ExecContext(ctx, query, status, id)
+	_, err = pgdb.db.ExecContext(ctx, query, metaB, status, id)
 	return err
 }
 
@@ -98,7 +101,7 @@ func (pgdb *PostgresDbClient) GetPendingTask() ([]model.PendingTask, error) {
 }
 
 func (pgdb *PostgresDbClient) GetFailTask() ([]model.PendingTask, error) {
-	query := "UPDATE jobdetail SET status = $1 WHERE status = $2 ORDER BY created_at ASC LIMIT 100 RETURNING id,meta"
+	query := "UPDATE jobdetail SET status = $1 where id in (select id from jobdetail where status = $2 ORDER BY created_at ASC LIMIT 100 ) RETURNING id,meta"
 	ctx, cancel := context.WithTimeout(context.Background(), util.POSTGRES_QUERY_TIMEOUT*time.Second)
 	defer cancel()
 	rows, err := pgdb.db.QueryContext(ctx, query, util.JOB_DETAIL_STATUS_PENDING, util.JOB_DETAIL_STATUS_FAILED)

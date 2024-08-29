@@ -25,7 +25,7 @@ type SupabaseClient interface {
 
 type PostgClient interface {
 	SaveTask(meta *model.TaskMeta) (string, error)
-	UpdateTaskStatus(id, status string) error
+	UpdateTaskStatus(id, status string, meta model.TaskMeta) error
 	GetPendingTask() ([]model.PendingTask, error)
 	GetFailTask() ([]model.PendingTask, error)
 }
