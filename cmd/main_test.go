@@ -54,7 +54,7 @@ func TestTaskScheduler(t *testing.T) {
 			JobTableName:      "jobdetail",
 			Done:              done,
 			RetryTimeDuration: time.Duration(3 * time.Second),
-			FuncGenerator:     generateFunc,
+			FuncGenerator:     testGenerateFunc,
 		}
 		tsk := scheduler.NewTaskScheduler(tconf)
 		err := tsk.StartScheduler()
@@ -66,7 +66,7 @@ func TestTaskScheduler(t *testing.T) {
 			meta := &model.TaskMeta{
 				MetaId: id,
 			}
-			if id == "task_690" {
+			if id == "task_6" {
 				meta.Retry = 5
 			}
 			mdlTsk := model.Task{
@@ -77,11 +77,11 @@ func TestTaskScheduler(t *testing.T) {
 				wg.Add(1)
 			}
 		}
-		if successC == 9 && failC == 1 {
-			t.Log("successfully completed the tasks")
-		} else {
-			t.Errorf("fail to complete all the tasks expected %v found %v \n", 10, (successC + failC))
-		}
 	}
 	wg.Wait()
+	if successC == 9 && failC == 1 {
+		t.Log("successfully completed the tasks")
+	} else {
+		t.Errorf("fail to complete all the tasks expected %v found %v \n", 10, (successC + failC))
+	}
 }
