@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"sync"
@@ -18,6 +19,24 @@ var wg sync.WaitGroup
 var failedMap = make(map[string]int, 0)
 var successC = 0
 var failC = 0
+
+type dbStruct struct{}
+
+func (db dbStruct) SaveTask(meta *model.TaskMeta) (string, error) {
+	id := fmt.Sprintf("%d-%v", rand.Int63(), meta.MetaId)
+	return id, nil
+}
+func (db dbStruct) UpdateTaskStatus(id, status string, meta model.TaskMeta) error {
+	return nil
+}
+func (db dbStruct) GetPendingTask() ([]model.PendingTask, error) {
+	pendingTasks := make([]model.PendingTask, 0)
+	return pendingTasks, nil
+}
+func (db dbStruct) GetFailTask() ([]model.PendingTask, error) {
+	pendingTasks := make([]model.PendingTask, 0)
+	return pendingTasks, nil
+}
 
 func testGenerateFunc() func(*model.TaskMeta) error {
 	return func(meta *model.TaskMeta) error {
@@ -57,7 +76,8 @@ func TestTaskScheduler(t *testing.T) {
 			FuncGenerator:     testGenerateFunc,
 		}
 		tsk := scheduler.NewTaskScheduler(tconf)
-		err := tsk.StartScheduler()
+		postgClient := dbStruct{}
+		tsk.InitScheduler(postgClient)
 		if err != nil {
 			return
 		}

@@ -50,10 +50,11 @@ func main() {
 			FuncGenerator:     generateFunc,
 		}
 		tsk := scheduler.NewTaskScheduler(tconf)
-		err := tsk.StartScheduler()
+		postgClient, err := tsk.InitStorage()
 		if err != nil {
 			return
 		}
+		tsk.InitScheduler(postgClient)
 		time.Sleep(time.Duration(time.Second * 3))
 		for i := 0; i < 1; i++ {
 			id := fmt.Sprintf("task_%v", i)

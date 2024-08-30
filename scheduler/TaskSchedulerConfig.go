@@ -7,6 +7,7 @@ import (
 	manager "github.com/amitiwary999/task-scheduler/manager"
 	model "github.com/amitiwary999/task-scheduler/model"
 	storage "github.com/amitiwary999/task-scheduler/storage"
+	"github.com/amitiwary999/task-scheduler/util"
 )
 
 type TaskConfig struct {
@@ -45,22 +46,25 @@ func NewTaskScheduler(tconf *TaskConfig) *TaskScheduler {
 	}
 }
 
-func (t *TaskScheduler) StartScheduler() error {
+func (t *TaskScheduler) InitStorage() (util.PostgClient, error) {
 	postgClient, error := storage.NewPostgresClient(t.postgUrl, t.poolLimit, t.jobTableName)
 	if error != nil {
 		fmt.Printf("postgres cient failed %v\n", error)
-		return error
+		return nil, error
 	}
 	err := postgClient.CreateJobTable()
 	if err != nil {
 		fmt.Printf("failed to create the table to save job details %v \n", err)
-		return err
+		return nil, err
 	}
+	return postgClient, nil
+}
+
+func (t *TaskScheduler) InitScheduler(postgClient util.PostgClient) {
 	ta := manager.NewTaskActor(t.maxTaskWorker, t.done, t.taskQueueSize)
 	taskM := manager.InitManager(postgClient, ta, t.retryTimeDuration, t.funcGenerator, t.done)
 	t.taskM = taskM
 	taskM.StartManager()
-	return nil
 }
 
 func (t *TaskScheduler) AddNewTask(task model.Task) error {
