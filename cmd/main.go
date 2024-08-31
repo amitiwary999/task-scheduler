@@ -11,7 +11,7 @@ import (
 
 	model "github.com/amitiwary999/task-scheduler/model"
 	scheduler "github.com/amitiwary999/task-scheduler/scheduler"
-
+	storage "github.com/amitiwary999/task-scheduler/storage"
 	"github.com/joho/godotenv"
 )
 
@@ -40,17 +40,14 @@ func main() {
 		gracefulShutdown := make(chan os.Signal, 1)
 		signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
 		tconf := &scheduler.TaskConfig{
-			PostgUrl:          os.Getenv("POSTGRES_URL"),
-			PoolLimit:         int16(poolLimit),
 			MaxTaskWorker:     10,
 			TaskQueueSize:     10000,
-			JobTableName:      "jobdetail",
 			Done:              done,
 			RetryTimeDuration: time.Duration(5 * time.Second),
 			FuncGenerator:     generateFunc,
 		}
 		tsk := scheduler.NewTaskScheduler(tconf)
-		postgClient, err := tsk.InitStorage()
+		postgClient, err := storage.NewPostgresClient(os.Getenv("POSTGRES_URL"), int16(poolLimit), "jobdetail")
 		if err != nil {
 			return
 		}

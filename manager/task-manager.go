@@ -10,7 +10,7 @@ import (
 )
 
 type TaskManager struct {
-	postgClient       util.PostgClient
+	storageClient     util.StorageClient
 	taskActor         *TaskActor
 	done              chan int
 	priorityQueue     PriorityQueue
@@ -18,9 +18,9 @@ type TaskManager struct {
 	funcGenerator     func() func(*model.TaskMeta) error
 }
 
-func InitManager(postgClient util.PostgClient, taskActor *TaskActor, retryTime time.Duration, funcGenerator func() func(*model.TaskMeta) error, done chan int) *TaskManager {
+func InitManager(storageClient util.StorageClient, taskActor *TaskActor, retryTime time.Duration, funcGenerator func() func(*model.TaskMeta) error, done chan int) *TaskManager {
 	return &TaskManager{
-		postgClient:       postgClient,
+		storageClient:     storageClient,
 		taskActor:         taskActor,
 		funcGenerator:     funcGenerator,
 		retryTimeDuration: retryTime,
@@ -40,7 +40,7 @@ func (tm *TaskManager) AddNewTask(task model.Task) error {
 	if task.Meta.Delay > 0 {
 		task.Meta.ExecutionTime = time.Now().Unix() + int64(task.Meta.Delay)*60
 	}
-	id, err := tm.postgClient.SaveTask(task.Meta)
+	id, err := tm.storageClient.SaveTask(task.Meta)
 	if err != nil {
 		fmt.Printf("failed to save the task %v\n", err)
 		return err
@@ -70,7 +70,7 @@ func (tm *TaskManager) assignTask(idTask string, meta *model.TaskMeta) {
 				taskStatus = util.JOB_DETAIL_STATUS_FAILED
 			}
 		}
-		tm.postgClient.UpdateTaskStatus(idTask, taskStatus, *meta)
+		tm.storageClient.UpdateTaskStatus(idTask, taskStatus, *meta)
 	}
 	tsk := model.ActorTask{
 		Meta:   meta,
@@ -108,7 +108,7 @@ func (tm *TaskManager) retryFailedTask() {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			tsks, err := tm.postgClient.GetFailTask()
+			tsks, err := tm.storageClient.GetFailTask()
 			if err == nil {
 				for _, tsk := range tsks {
 					go tm.assignTask(tsk.Id, tsk.Meta)
@@ -121,7 +121,7 @@ func (tm *TaskManager) retryFailedTask() {
 }
 
 func (tm *TaskManager) loadPendingTask() {
-	tsks, err := tm.postgClient.GetPendingTask()
+	tsks, err := tm.storageClient.GetPendingTask()
 	if err == nil {
 		for _, tsk := range tsks {
 			go tm.assignTask(tsk.Id, tsk.Meta)
